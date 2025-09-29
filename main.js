@@ -1,0 +1,854 @@
+"use strict";import * as THREE from "three";
+import "./style.css";
+import WebGL from "three/addons/capabilities/WebGL.js";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import {
+  CSS3DRenderer,
+  CSS3DObject,
+} from "three/addons/renderers/CSS3DRenderer.js";
+import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
+import { initGui } from "./gui";
+import { initStation } from "./station";
+import { GameState } from "./gameState";
+import { AutomationUtils } from "./automationUtils";
+import { canvasSetup } from "./canvasUtils";
+import { MapBuilder } from "./mapBuilder";
+import { menuInit } from "./src/ui/MenuBuilder";
+import vertexShader from "./src/shaders/vertex.glsl?raw";
+import fragmentShader from "./src/shaders/fragment.glsl?raw";
+
+if (WebGL.isWebGL2Available()) {
+  const { canvas, renderer } = canvasSetup();
+
+  const fov = 80;
+  const aspect = 2;
+  const near = 0.1;
+  const far = 40000;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+  const scene = new THREE.Scene();
+
+  //make an initGameState() with all the options to set player controls, scene camera matrix, difficulty and level select etc
+  const gameConfig = {
+    window: window,
+    camera,
+    scene,
+    canvas,
+    renderer,
+  };
+
+  const gameState = new GameState({ ...gameConfig });
+  
+  const mapBuilder = new MapBuilder(gameState);
+  
+  const inventoryElement = document.getElementById("inventory");
+  let localInventory = gameState.inventory;
+  gameState.buildInventory(localInventory);
+
+  menuInit(gameState);
+
+  gameState.setupControls(); //controls bound to 2 different classes
+  gameState.controls.enabled = gameState.getControlsEnabled();
+
+  //Loading scene, display main menu
+  gameState.displayMenu(mainMenu); // accessing this from the mainMenu ID in the index.html
+  if (gameState.getGameHasStarted()) {
+    gameState.setupControls();
+  }
+
+  gameState.audioLoader.load("./rocketEngine.wav", (buffer) => {
+    gameState.engineSound.setBuffer(buffer);
+    gameState.engineSound.setVolume(0.05);
+    gameState.engineSound.f;
+    gameState.engineSound.setRefDistance(200);
+    gameState.engineSound.setLoop(true); // Set the gameState.engineSound to loop
+    // Delay the play until the gameState.engineSound is ready
+    gameState.engineSound.play();
+  });
+
+  // Keyboard event listener (e.g., press "P" to pause)
+  gameState.initKeyHandlers();
+  // startGame(); // Ensure the game is started at the right time
+
+  const objects = [];
+  const spread = 15;
+  const bulletSpeed = { value: 35 }; // Adjust bullet speed here
+
+  function addObject(x, y, z, obj) {
+    obj.position.x = x;
+    obj.position.y = y;
+    obj.position.z = z;
+
+    scene.add(obj);
+    objects.push(obj);
+  }
+
+  //moved to other module
+  function createMaterial() {
+    const material = new THREE.MeshPhongMaterial({
+      side: THREE.DoubleSide,
+      transparent: true, // Enable transparency
+      opacity: 0.5, // Adjust opacity level (0 = fully transparent, 1 = fully opaque)
+    });
+
+    const hue = Math.random();
+    const saturation = 1;
+    const luminance = 0.5;
+    material.color.setHSL(hue, saturation, luminance);
+
+    return material;
+  }
+
+  function addSolidGeometry(x, y, z, geometry) {
+    const mesh = new THREE.Mesh(geometry, createMaterial());
+    addObject(x, y, z, mesh);
+  }
+
+  const spaceShipGroup = assembleBasicShip("automation ship");
+  spaceShipGroup.add(gameState.engineSound);
+
+  const secondShip = assembleBasicShip("target ship", { x: 0, y: -950, z: 0 });
+  const stationGroup = initStation({
+    x: gameState.playerObject.playerCamera.position.x,
+    y: gameState.playerObject.playerCamera.position.y,
+    z: gameState.playerObject.playerCamera.position.z,
+  });
+
+  const shipPosition = new THREE.Vector3(spaceShipGroup.position);
+  const shipTarget = new THREE.Vector3(0, 0, 0);
+
+  const color = new THREE.Color(0xffffff);
+  const colorBlue = new THREE.Color("#3271be");
+  const intensity = 3;
+  const directionalLight = new THREE.DirectionalLight(color, intensity);
+  const directionalLight2 = new THREE.DirectionalLight(
+    colorBlue,
+    intensity + 3,
+  );
+  directionalLight.position.set(300, 200, 200).normalize();
+  directionalLight2.position.set(-100, 100, -1500).normalize();
+  // directionalLight2.castShadow = true;
+  directionalLight.castShadow = true;
+
+  const targetObject = new THREE.Object3D();
+  const toggles = { spaceShipGroup, directionalLight };
+
+  const gui = initGui(toggles);
+
+  gui.add(bulletSpeed, "value");
+
+  renderer.domElement.style.margin = "0";
+  renderer.domElement.style.padding = "0";
+  renderer.domElement.style.display = "block"; // Ensure no unwanted spaces
+
+  spaceShipGroup.add(gameState.engineSound);
+
+  scene.add(spaceShipGroup);
+  scene.add(secondShip);
+  scene.add(targetObject);
+
+  scene.add(stationGroup);
+  scene.add(directionalLight);
+
+  const rotatingObjects = [];
+  const boxWidth = 2;
+  const boxHeight = 1;
+  const boxDepth = 3;
+
+  const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+  const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+
+  function generateMetalWallTexture(width = 512, height = 512) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    // Base fill (steel gray)
+    ctx.fillStyle = "#999";
+    ctx.fillRect(0, 0, width, height);
+
+    // Add brushed streaks
+    for (let y = 0; y < height; y++) {
+      const alpha = Math.random() * 0.2;
+      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    // Add vertical panel divisions
+    ctx.strokeStyle = "rgba(40,40,40,0.8)";
+    ctx.lineWidth = 4;
+    for (let x = width / 4; x < width; x += width / 4) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.needsUpdate = true;
+
+    return texture;
+  }
+
+  scene.background = mapBuilder.buildSkybox();
+  const flatTerrain = await mapBuilder.buildFlatTerrain(
+    500,
+    3,
+    500,
+    generateMetalWallTexture(),
+  );
+  const wall = await mapBuilder.buildFlatTerrain(
+    1000,
+    1000,
+    3,
+    generateMetalWallTexture(),
+    100,
+    100,
+  );
+  const heightTerrain = await mapBuilder.buildGlobe(2000, 64, 64);
+
+  function position(object, cords) {
+    const { x, y, z } = cords;
+    object.position.x = x;
+    object.position.y = y;
+    object.position.z = z;
+  }
+
+  const practiceGeometry = new THREE.IcosahedronGeometry(5, 5);
+  const practiceMaterial = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+  });
+
+  practiceMaterial.uniforms.uTime = { value: 0 };
+  practiceMaterial.uniforms.uRadius = { value: 0.5 };
+
+  const practice = new THREE.Mesh(practiceGeometry, practiceMaterial);
+  scene.add(practice);
+
+  position(practice, { x: 0, y: -800, z: -6520 });
+  position(flatTerrain.groundMesh, { x: 0, y: -1150, z: 0 });
+  position(wall.groundMesh, { x: 0, y: -800, z: -250 });
+  position(camera, { x: 0, y: -800, z: -6500 });
+
+  // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
+
+  position(heightTerrain.terrainGroup, { x: 0, y: 80, z: -3000 });
+  gui
+    .add(heightTerrain.terrainGroup.position, "x", -100000, 100000, 15)
+    // .name("earth x")
+    .onChange((value) => {
+      position(heightTerrain.terrainGroup, {
+        x: value,
+        y: heightTerrain.terrainGroup.position.y,
+        z: heightTerrain.terrainGroup.position.z,
+      });
+    });
+
+  scene.add(heightTerrain.terrainGroup);
+  scene.add(flatTerrain.groundMesh);
+  scene.add(wall.groundMesh);
+
+  //===============================================================
+  let currentAmmo = [];
+  const missileCount = 6; // Number of missiles you want
+  const missileObjects = []; // Array to store missile instances
+
+  // Load the material (.mtl) file first
+
+  gameState.MTLLoader.load(
+    "./models/missile/AIM120D.mtl",
+    function (materials) {
+      materials.preload(); // Preload the materials (including textures)
+
+      // Once the materials are loaded, load the .obj file with those materials
+      // const objLoader = new OBJLoader();
+      gameState.OBJLoader.setMaterials(materials); // Apply materials
+      gameState.OBJLoader.load(
+        "./models/missile/AIM120D.obj",
+        function (object) {
+          const textureLoader = new THREE.TextureLoader();
+          const texture = textureLoader.load("models/missile/texture.png.png"); // Use your texture path here
+          object.traverse((child) => {
+            if (child.isMesh) {
+              child.material.map = texture; // Apply texture to all mesh materials
+              child.material.needsUpdate = true;
+            }
+          });
+
+          // Loop to create multiple missiles
+          for (let i = 0; i < missileCount; i++) {
+            const missileClone = object.clone(); // Clone the missile object
+
+            // Optional: Adjust the scale and position of each missile
+            missileClone.scale.set(0.75, 1, 0.5); // Adjust to your liking
+            missileClone.position.set(-20 + i * 6, 0, 50); // Distribute missiles along X-axis for example
+            missileClone.rotation.x = Math.PI;
+            missileClone.rotation.y = 0;
+            missileClone.rotation.z = 0;
+            // Add the missile to the scene
+            spaceShipGroup.add(missileClone);
+
+            // Optional: Add the missile to other arrays or groups
+            currentAmmo.push({ ...missileClone, empty: false });
+            // Add an axis grid or any other visual aid
+            // makeAxisGrid(missileClone, "missileMesh");
+
+            // Push missile to missileObjects array to track them
+            missileObjects.push(missileClone);
+          }
+        },
+      );
+    },
+  );
+
+  const axes = new THREE.AxesHelper(100);
+  spaceShipGroup.add(axes);
+
+
+
+
+  let fireMissle = false;
+  let projectiles = [];
+
+
+ 
+
+  //automated movements of the ship
+  const spaceShipGroupAutomation = [
+    new THREE.Vector3(0.0, 0.0, 0.0), // start
+    // sidestep approach (far on +X side so straight line won't intersect sphere)
+    new THREE.Vector3(3450.0, 80.0, -3000.0),
+    // orbit points (12 around the sphere at radius R = 2300; center = (0,80,-3000))
+    new THREE.Vector3(2300.0, 80.0, -3000.0),
+    new THREE.Vector3(1991.858, 80.0, -1850.0),
+    new THREE.Vector3(1150.0, 80.0, -1008.142),
+    new THREE.Vector3(0.0, 80.0, -700.0),
+    new THREE.Vector3(-1150.0, 80.0, -1008.142),
+    new THREE.Vector3(-1991.858, 80.0, -1850.0),
+    new THREE.Vector3(-2300.0, 80.0, -3000.0),
+    new THREE.Vector3(-1991.858, 80.0, -4150.0),
+    new THREE.Vector3(-1150.0, 80.0, -4991.858),
+    new THREE.Vector3(0.0, 80.0, -5300.0),
+    new THREE.Vector3(1150.0, 80.0, -4991.858),
+    new THREE.Vector3(1991.858, 80.0, -4150.0),
+    // return to approach offset and then home
+    new THREE.Vector3(3450.0, 80.0, -3000.0),
+    new THREE.Vector3(0.0, 0.0, 0.0),
+  ];
+  const curve = AutomationUtils.createAutomationMovement(
+    spaceShipGroupAutomation,
+  );
+
+  /*TODO: move this fond loaded stuff to some thing already initialized on the gamestate class */
+  {
+    const fontLoader = gameState.FontLoader;
+    // promisify font loading
+    function loadFont(url) {
+      return new Promise((resolve, reject) => {
+        fontLoader.load(url, resolve, undefined, reject);
+      });
+    }
+
+    async function doit() {
+      const font = await loadFont(
+        "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+      );
+      const geometry = new TextGeometry("Destroy that planet!", {
+        font: font,
+        size: 50.0,
+        depth: 0.2,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.15,
+        bevelSize: 0.3,
+        bevelSegments: 5,
+      });
+      const geometryTv = new TextGeometry(
+        `
+       Press 'v' to interact`,
+        {
+          font: font,
+          size: 100.0,
+          depth: 0.5,
+          curveSegments: 12,
+          bevelEnabled: true,
+          bevelThickness: 1,
+          bevelSize: 0.3,
+          bevelSegments: 5,
+        },
+      );
+      addSolidGeometry(150, 500, -50, geometry);
+      addSolidGeometry(500, 500, -1450, geometryTv);
+
+      const mesh = new THREE.Mesh(geometry, createMaterial());
+      geometry.computeBoundingBox();
+      geometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
+
+      const parent = new THREE.Object3D();
+      // parent.add(mesh);
+
+      addObject(0, 0, 0, parent);
+    }
+
+    doit();
+  }
+
+  let mouseX = 0; // Mouse position on X axis
+  let mouseY = 0; // Mouse position on Y axis
+
+  let lastTime = 0; // Time reference to calculate momentum buildup
+  let center = false;
+  // Add event listener to capture mouse position
+  canvas.addEventListener("mousemove", (event) => {
+    const canvasWidth = canvas.clientWidth;
+    const canvasHeight = canvas.clientHeight;
+    // Normalize mouse position relative to the center of the canvas
+    mouseX = (event.clientX / canvasWidth) * 2 - 1; // Range from -1 to 1 (horizontal)
+    mouseY = -((event.clientY / canvasHeight) * 2 - 1); // Range from -1 to 1 (vertical)
+  });
+
+  canvas.addEventListener("mousedown", (event) => {
+    if (event.button === 2) {
+      // Right mouse button (0 = left, 1 = middle, 2 = right)
+      center = true;
+    }
+  });
+  const mouseDirection = new THREE.Vector3(mouseX, 0, mouseY).normalize(); // Normalize direction
+
+  const clock = new THREE.Clock(); // Create a clock for consistent timing
+  //==========================================================================================
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  ambientLight.position.set(0, 120, 0);
+  scene.add(ambientLight);
+
+  let time = 0;
+
+  // CSS3DRenderer
+  const cssRenderer = new CSS3DRenderer();
+  cssRenderer.setSize(window.innerWidth, window.innerHeight);
+  cssRenderer.domElement.style.position = "absolute";
+  cssRenderer.domElement.style.top = 0;
+  document.body.appendChild(cssRenderer.domElement);
+
+  // Create iframe element
+  const iframe = document.createElement("iframe");
+  iframe.src = "https://loopernet.netlify.app/"; // ⚠️ Must allow embedding via iframe (no X-Frame-Options)
+  // iframe.src = "example.html"; // ⚠️ Must allow embedding via iframe (no X-Frame-Options)
+  iframe.style.width = "800px";
+  iframe.style.height = "600px";
+  iframe.style.border = "0px";
+  iframe.style.pointerEvents = "none";
+  cssRenderer.domElement.style.pointerEvents = "none";
+  let looperFocus = false;
+  //tiglytag
+  // Wrap in CSS3DObject
+  const cssObject = new CSS3DObject(iframe);
+  cssObject.position.set(0, 2000, -1500);
+  cssObject.rotation.y = Math.PI; // Optional: rotate to face you
+
+  // ================================================================
+  // Optional: add a plane mesh behind iframe to look like a TV bezel
+  const cssPlaneGeometry = new THREE.BoxGeometry(815, 615, 1);
+  const cssPlaneMaterial = new THREE.MeshBasicMaterial({ color: "#660837" });
+  const bezelMaterial = new THREE.MeshBasicMaterial({
+    color: "#000000",
+    depthTest: true,
+    depthWrite: true,
+  });
+
+  const tvFrame = new THREE.Mesh(cssPlaneGeometry, bezelMaterial);
+  tvFrame.position.copy(cssObject.position);
+  tvFrame.position.z -= 1; // Push back slightly behind iframe
+  scene.add(tvFrame);
+  let velocity = new THREE.Vector3(0, 0, 0); // Initial velocity in X, Y, Z
+
+  function operateMovement(
+    velocity,
+    moveSpeed,
+    deltaTime,
+    shipDirection,
+    backwardDirection,
+    forwardDirection,
+  ) {
+    if (gameState.getMoveBackward()) {
+      velocity.add(backwardDirection.multiplyScalar(moveSpeed * deltaTime)); // Move opposite to the mouse direction
+    }
+
+    if (gameState.getMoveForward()) {
+      -camera.position.addScaledVector(shipDirection, moveSpeed);
+    }
+    if (gameState.getMoveBackward()) {
+      camera.position.addScaledVector(shipDirection, -moveSpeed);
+    }
+
+    // Strafe movement using the camera's right vector
+    const right = new THREE.Vector3();
+    right.crossVectors(camera.up, shipDirection).normalize();
+
+    if (gameState.getMoveLeft()) {
+      camera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
+      // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
+    }
+    if (gameState.getMoveRight()) {
+      camera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
+      // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
+    }
+  }
+
+  const distance = camera.position.distanceTo(tvFrame.position);
+  const inRange = distance <= gameState.interactionDistance;
+  const wantsInteract = gameState.getInteracting();
+
+  function startInteraction() {
+    // disable fly controls
+    gameState.controls.enabled = false;
+
+    // add iframe object to scene if not already
+    if (!scene.children.includes(cssObject)) {
+      console.log("something");
+      scene.add(cssObject);
+    }
+
+    //this stuff needs to be implemented on a basis of what the actual object is
+    // set initial camera position for viewing
+    camera.position.copy(cssObject.position).add(new THREE.Vector3(0, 0, -400));
+    camera.lookAt(cssObject.position);
+  }
+
+  function endInteraction() {
+    if (!gameState.getInteract() && !gameState.getInteracting()) {
+      scene.remove(cssObject);
+    }
+  }
+  function showInventory() {
+    const inventoryDiv = document.getElementById("inventoryDiv");
+    const inventory = document.getElementById("inventory");
+
+    if (gameState.inventoryDisplay) {
+      console.log("hit");
+      inventoryDiv.style.position = "fixed";
+      inventory.style.position = "fixed";
+      inventoryDiv.style.display = "block";
+    } else {
+      inventory.style.display = "none";
+      inventoryDiv.style.display = "none";
+    }
+  }
+  function showTip() {
+    toolTip.textContent = "Confirm Selection";
+    toolTip.style.display = "block";
+    toolTip.style.background = "red";
+  }
+  function updateGameState() {
+    if (gameState.getGameHasStarted() && !gameState.shipSelection) {
+      showTip();
+    }
+    if (gameState.inventoryDisplay) {
+      showInventory();
+    } else {
+      showInventory();
+    }
+    toggleMenu(
+      document.getElementById("mainMenu"),
+      !gameState.getGameHasStarted(),
+    );
+    toggleMenu(pauseMenu, gameState.getIsPaused());
+    toggleMenu(optionsMenu, gameState.getOptionsPage());
+  }
+
+  function toggleMenu(menu, show) {
+    if (show) gameState.displayMenu(menu);
+    else gameState.hideMenu(menu);
+  }
+
+
+  /*
+    Repositions the objects in the scene based off the newly calculated points along the spline curve*/
+  function updateProgrammedCharacters() {
+    spaceShipGroup.position.set(shipPosition.x, shipPosition.y, shipPosition.z);
+    spaceShipGroup.lookAt(shipTarget);
+  }
+
+  //applying the meta data to objects to update them in the frame
+  /*
+    This function is responsible for incrementing through points on the established spline curve which dictates the movement of objects its applied to, recalculated every frame
+    */
+  function calculateMovementAutomation(curve, shipSpeed, shipPosition) {
+    const shipMovementVector = curve.getPointAt(shipSpeed, shipPosition);
+    const shipDirectionOrientationVector = curve.getPointAt(
+      (shipSpeed + 0.01) % 1,
+      shipTarget,
+    );
+  }
+
+  function calculateShipSpeed(time) {
+    // move spaceship
+    time *= 0.001; // convert time to seconds
+    //because this is in the animation loop, each iteration will find a new point within the spline curve to adjust direction and orientation
+    //updating the meta data for posiont and orientation
+    const shipTime = time * 0.03;
+    //affects how many points are calculated along the vector curve to set the position and orientation
+    const shipSpeed = shipTime % 1;
+    return shipSpeed;
+  }
+
+  function updateInventoryUI() {
+    // console.log(localInventory);
+    // const inventoryElement = document.getElementById("inventory");
+    // if (!inventoryElement) return;
+
+    // // Clear existing UI
+    // inventoryElement.innerHTML = "";
+
+    // if (!gameState.inventory || gameState.inventory.length === 0) {
+    //   console.log("apparently nothing to render");
+    //   return; // nothing to render
+    // }
+
+    // Walk rows and cols
+    gameState.inventory.forEach((row, rowIndex) => {
+      row.forEach((slot, colIndex) => {
+        // console.log({slot}, "something that hsould be there");
+        const item = document.createElement("li");
+        item.className = "slot";
+        // console.log({slot});
+        let localSlot = localInventory[rowIndex][colIndex];
+        if (slot !== localSlot.name.toLowerCase()) {
+          if (typeof slot !== "object") {
+            const id = slot.split(":")[1];
+            // console.log({id});
+            localSlot = gameState.inventorySystem.getItem(Number(id));
+            //libraryItem: {id: 0, name: 'Empty', category: 'none', size: {…}, stackAble: false, …}
+            // console.log({slot});
+            console.log({ localSlot });
+
+            // const inventory = document.getElementById("inventory").children;
+            // console.log({ inventory });
+            // if (inventory[0].libraryItem.category === "none") {
+            //   inventory[0].libraryItem = localSlot;
+            //   inventory[0].textContent = localSlot.name;
+            //   if (libraryItem.src) {
+            //     const img = document.createElement("img");
+            //     img.src = libraryItem.src;
+            //     img.width = libraryItem.size?.w ? libraryItem.size.w * 64 : 128;
+            //     img.height = libraryItem.size?.h
+            //       ? libraryItem.size.h * 64
+            //       : 128;
+            //     inventory[0].appendChild(img);
+            //   }
+            //   // inventory[0].src = localSlot.src;
+            // }
+
+            const inventory = document.getElementById("inventory").children;
+
+            // flatten the row/col into a single index
+            const index = rowIndex * gameState.inventory[0].length + colIndex;
+
+            const li = inventory[index];
+
+            if (li.libraryItem.category === "none") {
+              li.libraryItem = localSlot;
+
+              if (localSlot.src) {
+                const img = document.createElement("img");
+                img.src = localSlot.src;
+                img.width = localSlot.size?.w ? localSlot.size.w * 64 : 128;
+                img.height = localSlot.size?.h ? localSlot.size.h * 64 : 128;
+                li.appendChild(img);
+              }
+            }
+          }
+        }
+        if (slot.id) {
+          console.log(slot?.id);
+          const id = slot.split(":")[1];
+          // Get the actual item definition from the library
+          // const format = slot.
+          const libraryItem =
+            gameState.inventorySystem.getItem(slot.id) ||
+            gameState.inventorySystem.getItem(0); // fallback
+          localInventory[rowIndex][colIndex] = libraryItem;
+          console.log({ libraryItem });
+
+          item.id = `${rowIndex}-${colIndex}`;
+          item.libraryItem = libraryItem;
+
+          // Render the image
+          if (libraryItem.src) {
+            const img = document.createElement("img");
+            img.src = libraryItem.src;
+            img.width = libraryItem.size?.w ? libraryItem.size.w * 64 : 128;
+            img.height = libraryItem.size?.h ? libraryItem.size.h * 64 : 128;
+            item.appendChild(img);
+          }
+        }
+
+        // Add interaction
+        item.onmouseover = (e) => {
+          gameState.itemMouseOver(e);
+        };
+
+        // inventoryElement.appendChild(item);
+      });
+    });
+  }
+
+  //=============================================================================================
+  //=============================================================================================
+  //=============================================================================================
+  //=============================================================================================
+  //=============================================================================================
+  let lastCheck = 0;
+
+  function animate(time) {
+    // console.log(gameState.inventory);
+    // gameState.getGameHasStarted();
+    gameState.controls.enabled = gameState.getControlsEnabled();
+    heightTerrain.groundMesh.rotation.y += 0.0001;
+    heightTerrain.groundMesh.rotation.x += 0.0001;
+    //==================================== checking is paused, responing with pause menu
+    console.log();
+    practice.rotation.x += 0.01;
+    updateGameState();
+    gameState.updateShots(time);
+    // updateProjectiles();
+    // if (time - lastCheck > 40) {
+    if (gameState.updatedInventory) {
+      // localInventory = gameState.inventory;
+
+      updateInventoryUI();
+    }
+    // }
+    if (time - lastCheck > 200) {
+      // every 200ms
+      gameState.checkParticleInteractions(gameState.playerObject.playerCamera);
+      lastCheck = time;
+    }
+
+    if (gameState.inventoryDisplay) {
+      inventoryElement.style.display = "block";
+      inventoryElement.style.position = "fixed";
+    }
+    requestAnimationFrame(animate);
+    //Reorients the camera on a level plane of (0,0)
+    if (center) {
+      camera.rotation.x = 0;
+      camera.rotation.z = 0;
+      center = false;
+    }
+
+    const delta = clock.getDelta();
+    for (let i = gameState.bloodSystems.length - 1; i >= 0; i--) {
+      if (!gameState.bloodSystems[i].update(delta)) {
+        gameState.bloodSystems.splice(i, 1); // remove finished systems
+      }
+    }
+
+    // / in your animation loop
+    // const delta = clock.getDelta();
+    for (let i = gameState.globeSystems?.length - 1; i >= 0; i--) {
+      if (!gameState.globeSystems[i].update(delta)) {
+        gameState.globeSystems.splice(i, 1);
+      }
+    }
+
+    //move speed is 2 plus the number applied from the boost on playObject
+    const moveSpeed =
+      gameState.playerObject.getCurrentSpeed() +
+      (gameState.playerObject.getActiveBoost() &&
+        gameState.playerObject.applyPlayerBoost().boostSpeed);
+
+    const shipDirection = new THREE.Vector3();
+    camera.getWorldDirection(shipDirection);
+
+    const deltaTime = time - lastTime;
+    lastTime = time;
+
+    // Apply movement in the direction of the mouse for forward and opposite for backward
+    const forwardDirection = mouseDirection.clone().setY(0).normalize(); // Direction of the mouse for forward movement
+    const backwardDirection = forwardDirection.clone().negate(); // Opposite direction for backward movement
+
+    operateMovement(
+      velocity,
+      moveSpeed,
+      deltaTime,
+      shipDirection,
+      backwardDirection,
+      forwardDirection,
+    );
+
+    calculateMovementAutomation(curve, calculateShipSpeed(time), shipPosition);
+    updateProgrammedCharacters();
+
+    // Calculate the direction vector from shipPosition to shipTarget
+    const direction = new THREE.Vector3()
+      .subVectors(shipTarget, shipPosition)
+      .normalize();
+    const newDirection = new THREE.Vector3()
+      .subVectors(shipTarget, shipPosition)
+      .normalize();
+    if (!direction.equals(newDirection)) {
+      targetQuaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        newDirection,
+      );
+      spaceShipGroup.quaternion.slerp(targetQuaternion, 0.1);
+    }
+
+    updateGradient();
+
+    // Update the controls for smooth camera movement
+    // gameState.controls.update(gameState.getLookSensitivity()); // Small delta time for smoother movement
+
+    const distance = camera.position.distanceTo(tvFrame.position);
+    const range = distance <= gameState.getInteractionDistance();
+    let interacting = gameState.getInteracting(range);
+
+    //check each cell in the 3d array of inventory for values different in the same cells as local inventory
+
+    if (gameState.inventory && gameState.inventory.length > 0) {
+      updateInventoryUI();
+    }
+
+    // Start interaction only once when the conditions are met
+    if (interacting) {
+      startInteraction();
+    }
+
+    // End interaction if player moves away or releases interact
+    if (!gameState.getInteract() && (inRange || !wantsInteract)) {
+      interacting = false;
+
+      endInteraction();
+    }
+
+    if (gameState.getInteracting()) {
+      // if(interaction.target === cssObject){} // handle what object the interaction is on by the return of getInteracting.target
+      // Camera follows the iframe position
+      camera.lookAt(cssObject.position);
+      cssObject.position.z -= 2; // optional small motion
+      camera.position.x = cssObject.position.x;
+      camera.position.y = cssObject.position.y;
+      camera.position.z = cssObject.position.z - 400;
+    } else {
+      // Normal controls
+      gameState.controls.update(gameState.getLookSensitivity());
+    }
+
+    renderer.render(scene, camera);
+    cssRenderer.render(scene, camera);
+  }
+
+  // Initiate function or other initializations here
+  requestAnimationFrame(animate);
+} else {
+  const warning = WebGL.getWebGL2ErrorMessage();
+  document.getElementById("container").appendChild(warning);
+}
