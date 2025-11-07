@@ -1,0 +1,60 @@
+  // loader.load(
+  //   "./example-v1.glb", // Ensure spaceship.glb is in the same directory
+  //   (gltf) => {
+  //     model = gltf.scene;
+  //     scene.add(model);
+  //     model.position.set(0, 0, 0);
+  //     model.scale.set(1, 1, 1);
+  //   },
+  //   undefined,
+  //   (error) => {
+  //     console.error("Error loading the spaceship model:", error);
+  //   },
+  // );
+
+  // labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  // labelRenderer.domElement.style.position = "absolute";
+  // labelRenderer.domElement.style.top = "0px";
+  // labelRenderer.domElement.style.pointerEvents = "none"; // Ensure label renderer doesn't interfere
+
+  // document.body.appendChild(labelRenderer.domElement);
+
+  // Update the axes position to follow the group center
+  // function updateAxesPosition() {
+  //   axes.position.copy(spaceShipGroup.position);
+  // }
+
+  //MakeBoxInstance(){
+  
+
+  // const material = new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 150 });
+    // const material = new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: .25, metalness: 1});
+    // const material = new THREE.MeshPhysicalMaterial({ map:  shipTexture, flatShading: true, roughness: .25, metalness: 1, clearcoat: 1, clearcoatRoughness: .5});
+    // }
+
+
+
+    // animate(){
+
+
+          // orion.lookAt(-camera.position.x, camera.position.y, camera.position.z);
+    // Calculate the direction vector from shipPosition to shipTarget
+    // const direction = new THREE.Vector3()
+    //   .subVectors(shipTarget, shipPosition)
+    //   .normalize();
+    //   const newDirection = new THREE.Vector3().subVectors(shipTarget, shipPosition).normalize();
+    //   if (!direction.equals(newDirection)) {
+    //     targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), newDirection);
+    //     spaceShipGroup.quaternion.slerp(targetQuaternion, 0.1);
+    //  }
+    // spaceShipGroup.lookAt(
+    //   shipPosition.x + direction.x,
+    //   shipPosition.y + direction.y,
+    //   shipPosition.z + direction.z,
+    // );
+
+    // Create a quaternion that rotates the ship to face the direction of movement
+    // const targetQuaternion = new THREE.Quaternion();
+    // targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+
+    }

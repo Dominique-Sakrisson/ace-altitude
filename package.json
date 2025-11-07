@@ -1,0 +1,16 @@
+{
+  "name": "threejs-project",
+  "version": "1.0.0",
+  "description": "https://lil-gui.georgealways.com/https://threejs-journey.com/lessons/textureshttps://threejs.org/docs/index.html#manual/en/introduction/Installationhttps://vite.dev/guide/cli.html\r https://threejs.org/docs/#manual/en/introduction/Libraries-and-Plugins\r https://threejs.org/docs/#manual/en/introduction/Drawing-lines\r https://threejs.org/docs/index.html#api/en/objects/Mesh\r http://localhost:5173/\r https://free3d.com/3d-model/aim-120d-missile-air-to-air-20348.html",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lil-gui": "^0.20.0",
+    "three": "^0.177.0"
+  },
+  "devDependencies": {}
+}

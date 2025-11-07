@@ -1,0 +1,18 @@
+/* 
+=========================
+THis block of commented code is the old handler for moving forward. It has since been moved to even listeners and handlers on the gameState and playerObject classes.
+
+The movement is now lags a bit between the first step forward and the next ones to continue the movement forward.. also applying boost while moving now stops the player movement, it requires pressing move forward again to move at boost speed.
+=========================
+if (gameState2.playerObject.getMoveForward()) {
+  if (gameState.boost) {
+    let speed = moveSpeed + 50;
+    velocity.add(forwardDirection.multiplyScalar(speed * deltaTime)); // Move towards the mouse direction
+    if (moveForward) {
+      -gamecamera.position.addScaledVector(shipDirection, speed);
+    }
+  } else {
+    velocity.add(forwardDirection.multiplyScalar(moveSpeed * deltaTime)); // Move towards the mouse direction
+}
+}
+*/

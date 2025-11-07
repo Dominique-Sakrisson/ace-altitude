@@ -7,7 +7,7 @@ import {
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
 import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
-import { initGui } from "./gui";
+import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
 import { AutomationUtils } from "./automationUtils";
@@ -38,9 +38,9 @@ if (WebGL.isWebGL2Available()) {
   };
 
   const gameState = new GameState({ ...gameConfig });
-  
+
   const mapBuilder = new MapBuilder(gameState);
-  
+
   const inventoryElement = document.getElementById("inventory");
   let localInventory = gameState.inventory;
   gameState.buildInventory(localInventory);
@@ -60,7 +60,7 @@ if (WebGL.isWebGL2Available()) {
     gameState.engineSound.setBuffer(buffer);
     gameState.engineSound.setVolume(0.05);
     gameState.engineSound.f;
-    gameState.engineSound.setRefDistance(200);
+    gameState.engineSound.setRefDistance(1000);
     gameState.engineSound.setLoop(true); // Set the gameState.engineSound to loop
     // Delay the play until the gameState.engineSound is ready
     gameState.engineSound.play();
@@ -97,11 +97,6 @@ if (WebGL.isWebGL2Available()) {
     material.color.setHSL(hue, saturation, luminance);
 
     return material;
-  }
-
-  function addSolidGeometry(x, y, z, geometry) {
-    const mesh = new THREE.Mesh(geometry, createMaterial());
-    addObject(x, y, z, mesh);
   }
 
   const spaceShipGroup = assembleBasicShip("automation ship");
@@ -310,14 +305,8 @@ if (WebGL.isWebGL2Available()) {
   const axes = new THREE.AxesHelper(100);
   spaceShipGroup.add(axes);
 
-
-
-
   let fireMissle = false;
   let projectiles = [];
-
-
- 
 
   //automated movements of the ship
   const spaceShipGroupAutomation = [
@@ -346,79 +335,66 @@ if (WebGL.isWebGL2Available()) {
   );
 
   /*TODO: move this fond loaded stuff to some thing already initialized on the gamestate class */
-  {
-    const fontLoader = gameState.FontLoader;
-    // promisify font loading
-    function loadFont(url) {
-      return new Promise((resolve, reject) => {
-        fontLoader.load(url, resolve, undefined, reject);
-      });
-    }
 
-    async function doit() {
-      const font = await loadFont(
-        "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
-      );
-      const geometry = new TextGeometry("Destroy that planet!", {
-        font: font,
-        size: 50.0,
-        depth: 0.2,
-        curveSegments: 12,
-        bevelEnabled: true,
-        bevelThickness: 0.15,
-        bevelSize: 0.3,
-        bevelSegments: 5,
-      });
-      const geometryTv = new TextGeometry(
-        `
-       Press 'v' to interact`,
-        {
-          font: font,
-          size: 100.0,
-          depth: 0.5,
-          curveSegments: 12,
-          bevelEnabled: true,
-          bevelThickness: 1,
-          bevelSize: 0.3,
-          bevelSegments: 5,
-        },
-      );
-      addSolidGeometry(150, 500, -50, geometry);
-      addSolidGeometry(500, 500, -1450, geometryTv);
-
-      const mesh = new THREE.Mesh(geometry, createMaterial());
-      geometry.computeBoundingBox();
-      geometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
-
-      const parent = new THREE.Object3D();
-      // parent.add(mesh);
-
-      addObject(0, 0, 0, parent);
-    }
-
-    doit();
+  // promisify font loading
+  function loadFont(url) {
+    return new Promise((resolve, reject) => {
+      gameState.FontLoader.load(url, resolve, undefined, reject);
+    });
   }
+
+  const interactTextConfig = {
+    phrase: "The one behind you",
+    x: gameState.playerObject.playerCamera.position.x - 250,
+    y: gameState.playerObject.playerCamera.position.y - 150,
+    z: gameState.playerObject.playerCamera.position.z - 150,
+    size: 50.0,
+    depth: 0.2,
+    curveSegments: 12,
+    bevelEnabled: true,
+    bevelThickness: 0.15,
+    bevelSize: 0.3,
+    bevelSegments: 5,
+  };
+  const destroyPlanetTextConfig = {
+    phrase: "Destroy That Planet!",
+    x: gameState.playerObject.playerCamera.position.x - 250,
+    y: gameState.playerObject.playerCamera.position.y,
+    z: gameState.playerObject.playerCamera.position.z - 150,
+    size: 50.0,
+    depth: 0.2,
+    curveSegments: 12,
+    bevelEnabled: true,
+    bevelThickness: 0.15,
+    bevelSize: 0.3,
+    bevelSegments: 5,
+  };
+
+  //make this take in the string to add, and config for the geometry
+  //ideally make the values connected to the gui
+  //give the geometry and onclick for the editor moode to resize etc
+  async function addTextToScene(config) {
+    const font = await loadFont(
+      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+    );
+    const fontConfig = { ...config, font: font };
+
+    const geometry = new TextGeometry(config.phrase, fontConfig);
+
+    const mesh = new THREE.Mesh(geometry, createMaterial());
+    mesh.position.set(config.x, config.y, config.z);
+    scene.add(mesh);
+  }
+
+  addTextToScene(interactTextConfig);
+  addTextToScene(destroyPlanetTextConfig);
 
   let mouseX = 0; // Mouse position on X axis
   let mouseY = 0; // Mouse position on Y axis
 
   let lastTime = 0; // Time reference to calculate momentum buildup
   let center = false;
-  // Add event listener to capture mouse position
-  canvas.addEventListener("mousemove", (event) => {
-    const canvasWidth = canvas.clientWidth;
-    const canvasHeight = canvas.clientHeight;
-    // Normalize mouse position relative to the center of the canvas
-    mouseX = (event.clientX / canvasWidth) * 2 - 1; // Range from -1 to 1 (horizontal)
-    mouseY = -((event.clientY / canvasHeight) * 2 - 1); // Range from -1 to 1 (vertical)
-  });
 
-  canvas.addEventListener("mousedown", (event) => {
-    if (event.button === 2) {
-      // Right mouse button (0 = left, 1 = middle, 2 = right)
-      center = true;
-    }
-  });
   const mouseDirection = new THREE.Vector3(mouseX, 0, mouseY).normalize(); // Normalize direction
 
   const clock = new THREE.Clock(); // Create a clock for consistent timing
@@ -446,7 +422,7 @@ if (WebGL.isWebGL2Available()) {
   iframe.style.border = "0px";
   iframe.style.pointerEvents = "none";
   cssRenderer.domElement.style.pointerEvents = "none";
-  let looperFocus = false;
+
   //tiglytag
   // Wrap in CSS3DObject
   const cssObject = new CSS3DObject(iframe);
@@ -456,75 +432,94 @@ if (WebGL.isWebGL2Available()) {
   // ================================================================
   // Optional: add a plane mesh behind iframe to look like a TV bezel
   const cssPlaneGeometry = new THREE.BoxGeometry(815, 615, 1);
-  const cssPlaneMaterial = new THREE.MeshBasicMaterial({ color: "#660837" });
   const bezelMaterial = new THREE.MeshBasicMaterial({
     color: "#000000",
     depthTest: true,
     depthWrite: true,
   });
 
+  const iframeGroup = new THREE.Group();
   const tvFrame = new THREE.Mesh(cssPlaneGeometry, bezelMaterial);
   tvFrame.position.copy(cssObject.position);
   tvFrame.position.z -= 1; // Push back slightly behind iframe
-  scene.add(tvFrame);
+  iframeGroup.add(tvFrame);
+  iframeGroup.specialInteract = true;
+  iframeGroup.specialInteract = true;
+
+  scene.add(iframeGroup);
   let velocity = new THREE.Vector3(0, 0, 0); // Initial velocity in X, Y, Z
 
-  function operateMovement(
-    velocity,
-    moveSpeed,
-    deltaTime,
-    shipDirection,
-    backwardDirection,
-    forwardDirection,
-  ) {
-    if (gameState.getMoveBackward()) {
-      velocity.add(backwardDirection.multiplyScalar(moveSpeed * deltaTime)); // Move opposite to the mouse direction
-    }
+  //velocity is a new 3vector
+  //movespeed is an equation based off players movement stats
+  //deltaTime, change in time since last update
+  //shipdirection an new vector3, gets assigned to the current camera direction
+  //backward direction takes into account the current shipdirection to calculat the reverse 
+  //forward direction takes into account the current shipdirection & mouse to interpret the direction in 3d space of movement
+  // function operateMovement(
+  //   velocity,
+  //   moveSpeed,
+  //   deltaTime,
+  //   shipDirection,
+  //   backwardDirection,
+  //   forwardDirection,
+  // ) {
+  //   if (gameState.getMoveBackward()) {
+  //     velocity.add(backwardDirection.multiplyScalar(moveSpeed * deltaTime)); // Move opposite to the mouse direction
+  //   }
 
-    if (gameState.getMoveForward()) {
-      -camera.position.addScaledVector(shipDirection, moveSpeed);
-    }
-    if (gameState.getMoveBackward()) {
-      camera.position.addScaledVector(shipDirection, -moveSpeed);
-    }
+  //   if (gameState.playerObject.getMoveForward()) {
+  //     -camera.position.addScaledVector(shipDirection, moveSpeed);
+  //   }
+  //   if (gameState.playerObject.getMoveBackward()) {
+  //     camera.position.addScaledVector(shipDirection, -moveSpeed);
+  //   }
 
-    // Strafe movement using the camera's right vector
-    const right = new THREE.Vector3();
-    right.crossVectors(camera.up, shipDirection).normalize();
+  //   // Strafe movement using the camera's right vector
+  //   const right = new THREE.Vector3();
+  //   right.crossVectors(camera.up, shipDirection).normalize();
 
-    if (gameState.getMoveLeft()) {
-      camera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
-      // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
-    }
-    if (gameState.getMoveRight()) {
-      camera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
-      // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
-    }
-  }
-
-  const distance = camera.position.distanceTo(tvFrame.position);
-  const inRange = distance <= gameState.interactionDistance;
-  const wantsInteract = gameState.getInteracting();
+  //   if (gameState.playerObject.getMoveLeft()) {
+  //     camera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
+  //     // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
+  //   }
+  //   if (gameState.playerObject.getMoveRight()) {
+  //     camera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
+  //     // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
+  //   }
+  // }
 
   function startInteraction() {
-    // disable fly controls
-    gameState.controls.enabled = false;
-
-    // add iframe object to scene if not already
-    if (!scene.children.includes(cssObject)) {
-      console.log("something");
+    if (gameState.looper) {
+      gameState.looper = false;
+      scene.remove(cssObject);
+      return;
+    }
+    if (gameState.selectedObject.object.uuid === tvFrame.uuid) {
+      const { playerCamera } = gameState.playerObject;
+      gameState.controls.enabled = false;
+      gameState.looper = true;
       scene.add(cssObject);
+      // handle what object the interaction is on by the return of getInteracting.target
+      // Camera follows the iframe position
+      playerCamera.lookAt(tvFrame.position);
+      cssObject.position.z -= 2; // optional small motion
+      playerCamera.position.x = cssObject.position.x;
+      playerCamera.position.y = cssObject.position.y;
+      playerCamera.position.z = cssObject.position.z - 400;
     }
 
     //this stuff needs to be implemented on a basis of what the actual object is
     // set initial camera position for viewing
-    camera.position.copy(cssObject.position).add(new THREE.Vector3(0, 0, -400));
-    camera.lookAt(cssObject.position);
+    gameState.playerObject.playerCamera.position
+      .copy(cssObject.position)
+      .add(new THREE.Vector3(0, 0, -400));
+    gameState.playerObject.playerCamera.lookAt(cssObject.position);
   }
 
   function endInteraction() {
     if (!gameState.getInteract() && !gameState.getInteracting()) {
-      scene.remove(cssObject);
+      // scene.remove(cssObject);
+      console.log("alot?");
     }
   }
   function showInventory() {
@@ -532,7 +527,6 @@ if (WebGL.isWebGL2Available()) {
     const inventory = document.getElementById("inventory");
 
     if (gameState.inventoryDisplay) {
-      console.log("hit");
       inventoryDiv.style.position = "fixed";
       inventory.style.position = "fixed";
       inventoryDiv.style.display = "block";
@@ -555,19 +549,25 @@ if (WebGL.isWebGL2Available()) {
     } else {
       showInventory();
     }
+    //arguments to toggle menu are the element to show, and the case in which the menu would be shown
     toggleMenu(
       document.getElementById("mainMenu"),
       !gameState.getGameHasStarted(),
     );
     toggleMenu(pauseMenu, gameState.getIsPaused());
     toggleMenu(optionsMenu, gameState.getOptionsPage());
+    //possible to add the interact toolTip here as a menu
+    toggleMenu(
+      document.getElementById("hudInteract"),
+      gameState.getShowInteract(),
+    );
   }
-
+  //recalls the status of a property from game state
+  //this is called for each menu and it checks for that prop of gamestate to be true
   function toggleMenu(menu, show) {
     if (show) gameState.displayMenu(menu);
     else gameState.hideMenu(menu);
   }
-
 
   /*
     Repositions the objects in the scene based off the newly calculated points along the spline curve*/
@@ -600,37 +600,23 @@ if (WebGL.isWebGL2Available()) {
   }
 
   function updateInventoryUI() {
-    // console.log(localInventory);
-    // const inventoryElement = document.getElementById("inventory");
-    // if (!inventoryElement) return;
-
-    // // Clear existing UI
-    // inventoryElement.innerHTML = "";
-
-    // if (!gameState.inventory || gameState.inventory.length === 0) {
-    //   console.log("apparently nothing to render");
-    //   return; // nothing to render
-    // }
-
     // Walk rows and cols
     gameState.inventory.forEach((row, rowIndex) => {
       row.forEach((slot, colIndex) => {
-        // console.log({slot}, "something that hsould be there");
+        //
         const item = document.createElement("li");
         item.className = "slot";
-        // console.log({slot});
+        //
         let localSlot = localInventory[rowIndex][colIndex];
         if (slot !== localSlot.name.toLowerCase()) {
           if (typeof slot !== "object") {
             const id = slot.split(":")[1];
-            // console.log({id});
+            //
             localSlot = gameState.inventorySystem.getItem(Number(id));
             //libraryItem: {id: 0, name: 'Empty', category: 'none', size: {…}, stackAble: false, …}
-            // console.log({slot});
-            console.log({ localSlot });
-
+            //
             // const inventory = document.getElementById("inventory").children;
-            // console.log({ inventory });
+            //
             // if (inventory[0].libraryItem.category === "none") {
             //   inventory[0].libraryItem = localSlot;
             //   inventory[0].textContent = localSlot.name;
@@ -667,7 +653,6 @@ if (WebGL.isWebGL2Available()) {
           }
         }
         if (slot.id) {
-          console.log(slot?.id);
           const id = slot.split(":")[1];
           // Get the actual item definition from the library
           // const format = slot.
@@ -675,7 +660,6 @@ if (WebGL.isWebGL2Available()) {
             gameState.inventorySystem.getItem(slot.id) ||
             gameState.inventorySystem.getItem(0); // fallback
           localInventory[rowIndex][colIndex] = libraryItem;
-          console.log({ libraryItem });
 
           item.id = `${rowIndex}-${colIndex}`;
           item.libraryItem = libraryItem;
@@ -700,6 +684,10 @@ if (WebGL.isWebGL2Available()) {
     });
   }
 
+  function isCssObject() {
+    return gameState?.selectedObject?.object.parent.specialInteract || false;
+  }
+
   //=============================================================================================
   //=============================================================================================
   //=============================================================================================
@@ -708,13 +696,13 @@ if (WebGL.isWebGL2Available()) {
   let lastCheck = 0;
 
   function animate(time) {
-    // console.log(gameState.inventory);
+    //
     // gameState.getGameHasStarted();
     gameState.controls.enabled = gameState.getControlsEnabled();
     heightTerrain.groundMesh.rotation.y += 0.0001;
     heightTerrain.groundMesh.rotation.x += 0.0001;
     //==================================== checking is paused, responing with pause menu
-    console.log();
+
     practice.rotation.x += 0.01;
     updateGameState();
     gameState.updateShots(time);
@@ -726,7 +714,7 @@ if (WebGL.isWebGL2Available()) {
       updateInventoryUI();
     }
     // }
-    if (time - lastCheck > 200) {
+    if (time - lastCheck > 100) {
       // every 200ms
       gameState.checkParticleInteractions(gameState.playerObject.playerCamera);
       lastCheck = time;
@@ -738,9 +726,12 @@ if (WebGL.isWebGL2Available()) {
     }
     requestAnimationFrame(animate);
     //Reorients the camera on a level plane of (0,0)
-    if (center) {
+    if (gameState.center) {
+      //call function on playerObject that is a center function
+      gameState.playerObject.centerAim();
       camera.rotation.x = 0;
       camera.rotation.z = 0;
+      //reset local center state
       center = false;
     }
 
@@ -775,14 +766,31 @@ if (WebGL.isWebGL2Available()) {
     const forwardDirection = mouseDirection.clone().setY(0).normalize(); // Direction of the mouse for forward movement
     const backwardDirection = forwardDirection.clone().negate(); // Opposite direction for backward movement
 
-    operateMovement(
-      velocity,
-      moveSpeed,
-      deltaTime,
-      shipDirection,
-      backwardDirection,
-      forwardDirection,
-    );
+    // operateMovement(
+    //   velocity,
+    //   moveSpeed,
+    //   deltaTime,
+    //   shipDirection,
+    //   backwardDirection,
+    //   forwardDirection,
+    // );
+    
+
+    console.log(gameState.playerObject.moveSpeed);
+    //trying to move this into the player class, having no luck on the boost working with the movement
+    // operateMovement(
+    //   gameState.playerObject.velocity,
+    //   moveSpeed,
+    //   deltaTime,
+    //   shipDirection,
+    //   backwardDirection,
+    //   forwardDirection,
+    // );
+
+    //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class 
+    gameState.playerObject.operateMovement(deltaTime, time, mouseDirection)
+
+
 
     calculateMovementAutomation(curve, calculateShipSpeed(time), shipPosition);
     updateProgrammedCharacters();
@@ -806,40 +814,25 @@ if (WebGL.isWebGL2Available()) {
 
     // Update the controls for smooth camera movement
     // gameState.controls.update(gameState.getLookSensitivity()); // Small delta time for smoother movement
-
-    const distance = camera.position.distanceTo(tvFrame.position);
-    const range = distance <= gameState.getInteractionDistance();
-    let interacting = gameState.getInteracting(range);
-
     //check each cell in the 3d array of inventory for values different in the same cells as local inventory
 
     if (gameState.inventory && gameState.inventory.length > 0) {
       updateInventoryUI();
     }
 
-    // Start interaction only once when the conditions are met
-    if (interacting) {
-      startInteraction();
+    if (gameState.getInteracting() && !gameState.wasInteracting) {
+      if (gameState?.selectedObject?.object?.parent?.specialInteract) {
+        startInteraction();
+      } else if (isCssObject()) {
+        endInteraction();
+      }
     }
+    gameState.wasInteracting = gameState.getInteracting();
 
-    // End interaction if player moves away or releases interact
-    if (!gameState.getInteract() && (inRange || !wantsInteract)) {
-      interacting = false;
-
-      endInteraction();
-    }
-
-    if (gameState.getInteracting()) {
-      // if(interaction.target === cssObject){} // handle what object the interaction is on by the return of getInteracting.target
-      // Camera follows the iframe position
-      camera.lookAt(cssObject.position);
-      cssObject.position.z -= 2; // optional small motion
-      camera.position.x = cssObject.position.x;
-      camera.position.y = cssObject.position.y;
-      camera.position.z = cssObject.position.z - 400;
+    if (gameState.looper) {
+      gameState.controls.enabled = false;
     } else {
-      // Normal controls
-      gameState.controls.update(gameState.getLookSensitivity());
+      gameState.controls.update(gameState.playerObject.getLookSensitivity());
     }
 
     renderer.render(scene, camera);

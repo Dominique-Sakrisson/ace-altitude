@@ -10,7 +10,7 @@ import {
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { BloodParticleSystem } from "./src/bloodParticleSystem";
 import { GlobeParticleSystem } from "./src/globeParticleSystem";
-import menuData from "./menuData";
+import menuData from "./src/ui/menuData";
 import { MapBuilder } from "./mapBuilder";
 import { InventorySystem } from "./src/inventorySystem";
 import { morphObject, generateTerrain, createBullet } from "./objectHelper";
@@ -29,6 +29,7 @@ export class GameState {
     renderer,
   }) {
     this.canvas = canvas;
+    this.renderer = renderer;
     this.controlsEnabled = false;
     this.reticleVisible = false;
     this.isPaused = false;
@@ -45,11 +46,15 @@ export class GameState {
     this.shipSelection = null;
     this.interact = false;
     this.interacting = false;
+    this.showInteract = false;
     this.playerObject = new PlayerSetup(window, camera);
     this.moveForward = false;
     this.moveBackward = false;
     this.moveLeft = false;
     this.moveRight = false;
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.center = false;
     this.bloodSystems = [];
     // this.globeSystems = [];
     this.globeSystems = null;
@@ -86,17 +91,21 @@ export class GameState {
     const moveSpeed = Math.PI / DEFAULT_ROLLSPEED;
     this.controls.movementSpeed = moveSpeed;
     //pass in negative amount to increase sensitivity
-    this.playerObject.setLookSensitivity(DEFAULT_ROLLSPEED - 10);
+    console.log(this.playerObject.getLookSensitivity());
+    // this.playerObject.setLookSensitivity(DEFAULT_ROLLSPEED - 10);
+    // this.playerObject.setLookSensitivity( 0.05);
     this.controls.rollSpeed = this.playerObject.getLookSensitivity();
   }
   updateShots(time) {
-    this.activeShots.forEach((shot) => {
-      shot.position.add(
-        shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
-      );
-      shot.rotation.z = time;
-      shot.rotation.x = time * Math.random() * 0.000036;
-    });
+    if (this.getControlsEnabled()) {
+      this.activeShots.forEach((shot) => {
+        shot.position.add(
+          shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
+        );
+        shot.rotation.z = time;
+        shot.rotation.x = time * Math.random() * 0.000036;
+      });
+    }
   }
 
   itemMouseOver(e) {
@@ -145,6 +154,7 @@ export class GameState {
       tooltip.style.display = "none";
     };
   }
+
   initHoverHandlers() {}
   reticleOff() {
     document.getElementById("reticle").style.display = "none";
@@ -156,11 +166,25 @@ export class GameState {
   initKeyHandlers() {
     this.canvas.addEventListener("click", () => {
       if (this.playerObject.playerCamera.position.x === undefined) return;
-      createBullet(
-        this.playerObject.playerCamera,
-        this.scene,
-        this.activeShots,
-      );
+      if (this.getControlsEnabled()) {
+        createBullet(
+          this.playerObject.playerCamera,
+          this.scene,
+          this.activeShots,
+        );
+      }
+    });
+    this.canvas.addEventListener("mousedown", (event) => {
+      if (event.button === 2) {
+        // Right mouse button (0 = left, 1 = middle, 2 = right)
+        this.center = true;
+      }
+    });
+    this.canvas.addEventListener("mouseup", (event) => {
+      if (event.button === 2) {
+        // Right mouse button (0 = left, 1 = middle, 2 = right)
+        this.center = false;
+      }
     });
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
@@ -176,9 +200,6 @@ export class GameState {
         return;
       }
     });
-
-    window.addEventListener("keydown", (event) => {});
-  
 
     window.addEventListener("keydown", (event) => {
       event.preventDefault();
@@ -205,9 +226,7 @@ export class GameState {
       camera.updateProjectionMatrix();
     });
   }
-  getReticleVisible() {
-    return this.reticleVisible;
-  }
+
   buildInventory(localInventory) {
     const inventoryElement = document.getElementById("inventory");
     console.log({ localInventory });
@@ -220,29 +239,17 @@ export class GameState {
         img.src = defaultItem.src;
         img.width = item.width || 128;
         img.height = item.height || 128;
-
         item.appendChild(img);
       }
-
       item.libraryItem = defaultItem;
       item.className = "slot";
-      // (item.onHover = showItemToolTip(readItemInSpace())),
-      // item.textContent = "slot"; // just to see something
-      // item.textContent = img; // just to see something
-      // item.style.color = "white";
       inventoryElement.appendChild(item);
-
       item.onmouseover = (e) => {
         this.itemMouseOver(e);
       };
-      // parent: "inventory",
-      // onHover:
     });
   }
 
-  setReticleVisible(toggle) {
-    this.reticleVisible = toggle;
-  }
   getControlsEnabled() {
     return this.controlsEnabled;
   }
@@ -279,42 +286,41 @@ export class GameState {
     // Regular expression to match only characters within the standard ASCII range (0x00-0x7F)
     return /^[\x00-\x7F]*$/.test(str);
   }
+
+  //interacts with particles, on the globeSystems
+  //particles will have an item linked to its data that will allow adding an item to the inventory
   checkParticleInteractions(camera) {
     const candidates = [];
-
-    // const particles = this.globeSystems?.map((item) => {
-    //   return item.particles;
-    // });
     const particles = this.globeSystems?.particles;
     if (!this.globeSystems?.particles.length) return;
-    // if (!this.globeSystems?.length) return;
+    //first verify there are particles in range
     for (const particle of particles) {
       const pos = new THREE.Vector3();
       particle.terrainGroup.getWorldPosition(pos);
-
       const dist = camera.position.distanceTo(pos);
       if (dist < this.interactionDistance) {
-        // this.onParticleNear(particle, dist);
         candidates.push(particle.terrainGroup);
       }
     }
     // step 2: run raycaster against nearby candidates only
+    //all candidates are within range
     if (candidates.length > 0) {
       const centerNDC = new THREE.Vector2(0, 0); // screen center
 
       const { raycaster } = this.playerObject.playerCamera;
 
-      raycaster.setFromCamera(centerNDC, camera);
+      // raycaster.setFromCamera(centerNDC, camera);
 
       const intersects = raycaster.intersectObjects(candidates, true);
 
+      //get the first closest intersection
       if (intersects.length > 0) {
         //will return the object with the category to search for
-        const hit = intersects[0].object;
+        const targetInteraction = intersects[0].object;
         if (this.interacting) {
           //get object with matching category from list,
           const item = this.inventorySystem.getItemByCategory(
-            hit.parent.category,
+            targetInteraction.parent.category,
           );
           let defaultPosX = 0;
           let defaultPosY = 0;
@@ -337,30 +343,18 @@ export class GameState {
           }
 
           const inventory = this.inventorySystem.printInventory();
-          this.scene.remove(hit.parent);
+          this.scene.remove(targetInteraction.parent);
           this.inventory = inventory;
           this.updatedInventory = true;
-          console.log(this.updatedInventory, "updatedInventory");
-          // setTimeout(() => {
-          //   this.updatedInventory = false;
-          // }, 200);
-          //remove the particle from scene
-          //bonus: give a message on screen acknowledging add to inventory
+          this.globeSystems.removeParticle(targetInteraction.parent.particleId);
         }
-        // do your interaction logic here (collect, highlight, etc.)
       }
     }
   }
-  onParticleNear(particle, dist) {
-    // Trigger custom logic here
-    // console.log("Camera is near particle:", particle, "at distance", dist);
-    // Example: mark for pickup, trigger animation, etc.
-    // particle.collected = true;
-  }
+
   removeGroup = (group) => {
-    console.log({group});
     // when removing a group
-    if(!group.particle){
+    if (!group.particle) {
       const globeSystem = new GlobeParticleSystem(
         this.scene,
         group,
@@ -409,75 +403,59 @@ export class GameState {
   };
   setupControls = () => {
     this.configureControls();
+    this.canvas.addEventListener("mousemove", (event) => {
+      const canvasWidth = this.canvas.clientWidth;
+      const canvasHeight = this.canvas.clientHeight;
+      // Normalize mouse position relative to the center of the canvas
+      this.mouseX = (event.clientX / canvasWidth) * 2 - 1; // Range from -1 to 1 (horizontal)
+      this.mouseY = -((event.clientY / canvasHeight) * 2 - 1); // Range from -1 to 1 (vertical)
+    });
+    this.window.addEventListener("mousemove", (event) => {
+      const { raycaster } = this.playerObject.playerCamera;
+      this.setSelectedObject(event);
+      const inRange = this.selectedObject?.distance <= this.interactionDistance;
+      this.showInteract = false;
+      if (
+        (inRange &&
+          this.targetingSystem.intersects.length &&
+          this.targetingSystem.intersects[0].object.parent.interactable) ||
+        this.targetingSystem.intersects[0]?.object.parent.specialInteract
+      ) {
+        this.showInteract = true;
+      }
+    });
+
     this.window.addEventListener("click", (event) => {
+      // this.setSelectedObject(event);
+      console.log(this.targetingSystem);
       const { raycaster } = this.playerObject.playerCamera;
       // const mouse = new THREE.Vector2();
       const centerNDC = new THREE.Vector2(0, 0); // center of screen
-      const allObjects = [];
 
-      this.scene.traverse((child) => {
-        if (child.isGroup) {
-          allObjects.push(child);
-        }
-      });
-      let targetingSystem;
-      if (allObjects.length) {
-        targetingSystem = new TargetingSystem(
-          this.playerObject.playerCamera,
-          allObjects,
-        );
-      }
-
-      if (targetingSystem.intersects.length) {
-        const {
-          target,
-          baryCoords,
-          targetGeometry: geometry,
-        } = targetingSystem.getCurrentTarget();
-
-        this.selectedObject = target; // store reference to first intersection ** removed for now**
-
-        const colorAttr = target.object.geometry.attributes.color;
+      if (this.targetingSystem.intersects.length) {
+        const colorAttr = this.selectedObject.object.geometry.attributes.color;
         // const geometry = this.selectedObject.object.geometry;
 
-        if (geometry.isBufferGeometry) {
-          const interpolatedPoint = targetingSystem.determineHitMarker(
-            geometry,
-            baryCoords,
+//check if the object is within range of the weapon distance        
+        if (this.geometry.isBufferGeometry) {
+         
+          const interpolatedPoint = this.targetingSystem.determineHitMarker(
+            this.geometry,
+            this.baryCoords,
           );
 
           /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
-          const marker = new THREE.Mesh(
-            new THREE.SphereGeometry(5, 1, 1),
-            new THREE.MeshPhongMaterial({
-              // color: 0xff00000, // default flesh impact
-              // color: 0x996600, // default metal impact
-              color: 0xc0c0c0, // base silver
-              // shininess: 50,
-              specular: 0xffffff, // bright highlights
-              // specular: 0xaaaaaa,
-              shininess: 100, // higher for metal gloss
-              // emissive: 0x072534,
-              emissive: 0x111111, // subtle glow if needed -- silver
-            }),
-          );
 
-          marker.position.copy(interpolatedPoint);
+         
+          const marker = this.establishHitMarker(interpolatedPoint)
 
-          const parentScale = target.object.getWorldScale(new THREE.Vector3());
+          this.selectedObject.object.add(marker);
 
-          marker.scale.set(
-            1 / parentScale.x,
-            1 / parentScale.y,
-            1 / parentScale.z,
-          );
+          // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
 
-          target.object.add(marker);
-
-          // When you click: check what object is hit, do the checking for how many hitsm, make the change at ten hits
-
-          if (targetingSystem.intersects.length > 0) {
-            const hit = target;
+          if (this.targetingSystem.intersects.length > 0) {
+            const hit = this.selectedObject;
+            const configParticlesFromObject = {}
             const blood = new BloodParticleSystem(
               this.scene,
               hit.point,
@@ -510,13 +488,11 @@ export class GameState {
               }
 
               this.bloodSystems.push(blood);
-              // this.hits.push(hit.object);
             }
-            // this.hits.push({target : , hit type : {aoe:  {velocity, damage:{ base, boost , }},})
           }
-          // console.log(this.hits);
+//cleanup the markers that have been left on targets
           setTimeout(() => {
-            target.object.remove(marker);
+            this.selectedObject.object.remove(marker);
             marker.geometry.dispose();
             marker.material.dispose();
           }, 200);
@@ -548,32 +524,40 @@ export class GameState {
 
       if (event.code === "KeyW") {
         event.preventDefault();
-        this.setMoveForward(true);
+        if (this.getIsPaused() || !this.getGameHasStarted()) return;
+        this.playerObject.setMoveForward(true);
         // this.updatePlayerPosition();
       }
       if (event.code === "KeyA") {
         event.preventDefault();
+        if (this.getIsPaused() || !this.getGameHasStarted()) return;
 
-        this.setMoveLeft(true);
+        this.playerObject.setMoveLeft(true);
       }
       if (event.code === "KeyS") {
         event.preventDefault();
-        this.setMoveBackward(true);
+        if (this.getIsPaused() || !this.getGameHasStarted()) return;
+        this.playerObject.setMoveBackward(true);
       }
       if (event.code === "KeyD") {
         event.preventDefault();
-        this.setMoveRight(true);
+        this.playerObject.setMoveRight(true);
       }
       if (event.code === "KeyV") {
         event.preventDefault();
-        this.setInteract(true);
-        if (this.getInteract()) {
-          this.setInteracting(false);
-        } else {
-          this.setInteracting(true);
-          this.scene.remove(this.selectedObject);
+        this.setSelectedObject(event);
+        const inRange =
+          this.selectedObject?.distance <= this.interactionDistance;
+
+        if (inRange) {
+          const state = !this.getInteracting();
+          this.setInteracting(state);
+          this.setInteract(state);
+          console.log({ state });
+          if (!state && this.selectedObject) {
+            this.scene.remove(this.selectedObject);
+          }
         }
-        console.log(this.getInteracting(), "interacting boolean");
       }
       if (event.code === "ShiftLeft") {
         event.preventDefault();
@@ -583,34 +567,33 @@ export class GameState {
       if (event.code === "Tab") {
         event.preventDefault();
         this.inventoryDisplay = !this.inventoryDisplay;
-        console.log(this.inventoryDisplay);
       }
     });
     this.window.addEventListener("keyup", (event) => {
       event.preventDefault();
       if (event.code === "KeyW") {
         event.preventDefault();
-        this.setMoveForward(false);
+        this.playerObject.setMoveForward(false);
       }
       if (event.code === "KeyS") {
         event.preventDefault();
-        this.setMoveBackward(false);
+        this.playerObject.setMoveBackward(false);
       }
       if (event.code === "KeyA") {
         event.preventDefault();
-        this.setMoveLeft(false);
+        this.playerObject.setMoveLeft(false);
       }
       if (event.code === "KeyD") {
         event.preventDefault();
-        this.setMoveRight(false);
+         this.playerObject.setMoveRight(false);
       }
       if (event.code === "KeyV") {
         event.preventDefault();
-        // this.setInteract(false);
+        this.setInteracting(false);
+        this.setInteract(false);
       }
       if (event.code === "KeyH") {
         event.preventDefault();
-        // console.log(this.getControlsEnabled());
         if (this.getControlsEnabled()) {
           this.setDisableControls();
         } else {
@@ -620,62 +603,43 @@ export class GameState {
       if (event.code === "ShiftLeft") {
         event.preventDefault();
         this.setBoost(false);
-        // this.playerObject.setBoost(this.boost);
       }
     });
   };
-  getMoveForward() {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    return this.moveForward;
-  }
-  setMoveForward(toggle) {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    this.moveForward = toggle;
-  }
-  getMoveBackward() {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    return this.moveBackward;
-  }
-  setMoveBackward(toggle) {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    this.moveBackward = toggle;
-  }
-  getMoveLeft() {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    return this.moveLeft;
-  }
-  setMoveLeft(toggle) {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    this.moveLeft = toggle;
-  }
-  getMoveRight() {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-    return this.moveRight;
-  }
-  setMoveRight(toggle) {
-    if (this.getIsPaused() || !this.getGameHasStarted()) return;
-    this.moveRight = toggle;
-  }
-  getLookSensitivity() {
-    return this.lookSensitivity;
-  }
-  setLookSensitivity(number) {
-    this.lookSensitivity = number;
-  }
+  // getMoveForward() {
+  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
+  //   return this.moveForward;
+  // }
+
+  // getMoveBackward() {
+  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
+  //   return this.moveBackward;
+  // }
+
+  // getMoveLeft() {
+  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
+  //   return this.moveLeft;
+  // }
+  // setMoveLeft(toggle) {
+  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
+  //   this.moveLeft = toggle;
+  // }
+  // getMoveRight() {
+  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
+  //   return this.moveRight;
+  // }
+  // getLookSensitivity() {
+  //   return this.lookSensitivity;
+  // }
+  // setLookSensitivity(number) {
+  //   this.lookSensitivity = number;
+  // }
   setBoost(toggle) {
     this.boost = toggle;
   }
   getInteract() {
     return this.interact;
   }
-  // setInteract(toggle) {
-  //   if (this.getInteract()) {
-  //     this.interact = toggle;
-  //   }
-  //   if (!this.getInteract()) {
-  //     this.interact = toggle;
-  //   }
-  // }
   setGameHasStarted(toggle) {
     this.gameHasStarted = toggle;
   }
@@ -717,19 +681,20 @@ export class GameState {
       this.interact = toggle;
     }
   }
+  getShowInteract() {
+    return this.showInteract;
+  }
   getInteract() {
     return this.interact;
   }
-  getInteracting(range) {
-    if (!typeof range === "boolean") return false;
-    // console.log(this.getInteract(), "clas s interact while interacting");
-    return this.getInteract() && range;
+  getInteracting() {
+    return this.getInteract();
   }
   setInteracting(toggle) {
     if (!typeof toggle === "boolean") return;
 
     this.interacting = toggle;
-    this.playerObject.setInteract(toggle);
+    // this.playerObject.setInteract(toggle);
   }
   getControls() {
     return this.controls;
@@ -739,5 +704,72 @@ export class GameState {
     this.controls.enabled = enabled;
     this.controls.movementSpeed = movementSpeed;
     this.controls.rollSpeed = rollSpeed;
+  }
+  setSelectedObject(event) {
+    const allObjects = [];
+
+    this.scene.traverse((child) => {
+      if (child.isGroup) {
+        allObjects.push(child);
+      }
+    });
+    let targetingSystem;
+
+    if (allObjects.length) {
+      this.targetingSystem = new TargetingSystem(
+        this.playerObject.playerCamera,
+        allObjects,
+      );
+    }
+
+    if (this.targetingSystem.intersects.length) {
+      const {
+        target,
+        baryCoords,
+        targetGeometry: geometry,
+      } = this.targetingSystem.getCurrentTarget(this.selectedObject);
+
+      this.selectedObject = target; // store reference to first intersection ** removed for
+      this.baryCoords = baryCoords;
+      this.geometry = geometry;
+      // now**
+    }
+  }
+  establishHitMarker(interpolatedPoint){
+     const marker = new THREE.Mesh(
+            new THREE.SphereGeometry(5, 1, 1),
+            new THREE.MeshPhongMaterial({
+              // color: 0xff00000, // default flesh impact
+              // color: 0x996600, // default metal impact
+              color:
+                this.selectedObject.object.parent.markerConfig.materialConfig
+                  .color || 0xc0c0c0, // base silver
+              // shininess: 50,
+              specular:
+                this.selectedObject.object.parent.markerConfig.materialConfig
+                  .specular || 0xffffff, // bright highlights
+              // specular: 0xaaaaaa,
+              shininess:
+                this.selectedObject.object.parent.markerConfig.materialConfig
+                  .shininess || 100, // higher for metal gloss
+              // emissive: 0x072534,
+              emissive:
+                this.selectedObject.object.parent.markerConfig.materialConfig
+                  .emissive || 0x111111, // subtle glow if needed -- silver
+            }),
+          );
+
+          marker.position.copy(interpolatedPoint);
+
+          const parentScale = this.selectedObject.object.getWorldScale(
+            new THREE.Vector3(),
+          );
+
+          marker.scale.set(
+            1 / parentScale.x,
+            1 / parentScale.y,
+            1 / parentScale.z,
+          );
+          return marker;
   }
 }
