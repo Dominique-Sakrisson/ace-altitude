@@ -1,5 +1,5 @@
 import * as dat from "lil-gui";
-export function initGui({spaceShipGroup, directionalLight: light}) {
+export function initGui({ spaceShipGroup }) {
   const gui = new dat.GUI();
 
   const spaceShipPositionGUIHelper = {
@@ -8,12 +8,7 @@ export function initGui({spaceShipGroup, directionalLight: light}) {
     z: spaceShipGroup.position.z,
   };
 
-  gui
-    .add(spaceShipPositionGUIHelper, "x", 0, 20, 0.5)
-    .name("light intensity")
-    .onChange((value) => {
-      light.intensity = value;
-    });
+  
 
   gui
     .add(spaceShipPositionGUIHelper, "x", -100, 100, 0.1)

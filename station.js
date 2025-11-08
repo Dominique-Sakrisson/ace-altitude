@@ -6,9 +6,9 @@ function generateLighting() {
   const lights = [];
   const color = 0xffffff;
   const intensity = 1;
-  const directionalLight = new THREE.DirectionalLight(color, intensity);
-  directionalLight.position.set(0, 100, 50).normalize();
-  lights.push(directionalLight);
+  // const directionalLight = new THREE.DirectionalLight(color, intensity);
+  // directionalLight.position.set(0, 100, 50).normalize();
+  // lights.push(directionalLight);
   return lights;
 }
 function generateCones() {

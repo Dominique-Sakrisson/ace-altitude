@@ -1,4 +1,5 @@
-import * as THREE from "three";import { Boost } from "./enhancements/boost";
+import * as THREE from "three";
+import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
 
 export class PlayerSetup {
@@ -111,19 +112,17 @@ export class PlayerSetup {
   getMoveRight() {
     return this.moveRight;
   }
-  // setMoveForward(option) {
-  //   this.moveForward = option ? true : false;
+
+  // movement(direction, moveOps) {
+  //   const options = new Map();
+  //   options.set("forward", (direction, speed) => {
+  //     this.playerCamera.position.addScaledVector(direction, speed);
+  //   });
+  //   options.set("backward");
+  //   options.set("left");
+  //   options.set("right");
+  //   options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed);
   // }
-
-  movement(direction, moveOps){
-const options = new Map();
-options.set("forward", ((direction, speed) =>{this.playerCamera.position.addScaledVector(direction, speed)}))
-options.set("backward")
-options.set("left")
-options.set("right")
-options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed)
-
-  }
 
   operateMovement(deltaTime, time, mouseDirection) {
     const forwardDirection = mouseDirection.clone().setY(0).normalize(); // Direction of the mouse for forward movement
@@ -188,10 +187,10 @@ options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed)
   /** used or in game upgrades or buffs that will enhance the  boost stats as players level them or use temporary powerups*/
   setActiveBoost(toggle) {
     this.activeBoost = toggle;
-    if(toggle){
-      this.moveSpeed = this.speed + this.applyPlayerBoost().boostSpeed
+    if (toggle) {
+      this.moveSpeed = this.speed + this.applyPlayerBoost().boostSpeed;
     } else {
-      this.moveSpeed = this.speed
+      this.moveSpeed = this.speed;
     }
   }
   getActiveBoost() {
@@ -209,9 +208,9 @@ options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed)
     this.playerCamera.rotation.z = 0;
   }
 
-  centerAim(){
-    this.playerCamera.rotation.x = 0
-    this.playerCamera.rotation.y =0
+  centerAim() {
+    this.playerCamera.rotation.x = 0;
+    this.playerCamera.rotation.y = 0;
   }
   onMouseMove = (event) => {
     this.pointer.x = (event.clientX / this.window.innerWidth) * 2 - 1;

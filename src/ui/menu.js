@@ -106,7 +106,6 @@ export class Menu {
         }); //options governing the state of managing active paused or not started games
       }
       document.getElementById(node.parent).appendChild(element);
-  
     });
 
     return menuOptions;

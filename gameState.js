@@ -1,4 +1,5 @@
-import * as THREE from "three";import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PlayerSetup } from "./playerSetup";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
@@ -85,6 +86,10 @@ export class GameState {
     ];
     this.updatedInventory = false;
     this.bulletSpeed = 35;
+    this.selectAbleShips = [];
+  }
+  addSelectableShip(ship) {
+    this.selectAbleShips.push(ship);
   }
   configureControls() {
     const DEFAULT_ROLLSPEED = 24;
@@ -436,9 +441,8 @@ export class GameState {
         const colorAttr = this.selectedObject.object.geometry.attributes.color;
         // const geometry = this.selectedObject.object.geometry;
 
-//check if the object is within range of the weapon distance        
+        //check if the object is within range of the weapon distance
         if (this.geometry.isBufferGeometry) {
-         
           const interpolatedPoint = this.targetingSystem.determineHitMarker(
             this.geometry,
             this.baryCoords,
@@ -446,8 +450,7 @@ export class GameState {
 
           /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
 
-         
-          const marker = this.establishHitMarker(interpolatedPoint)
+          const marker = this.establishHitMarker(interpolatedPoint);
 
           this.selectedObject.object.add(marker);
 
@@ -455,7 +458,7 @@ export class GameState {
 
           if (this.targetingSystem.intersects.length > 0) {
             const hit = this.selectedObject;
-            const configParticlesFromObject = {}
+            const configParticlesFromObject = {};
             const blood = new BloodParticleSystem(
               this.scene,
               hit.point,
@@ -490,7 +493,7 @@ export class GameState {
               this.bloodSystems.push(blood);
             }
           }
-//cleanup the markers that have been left on targets
+          //cleanup the markers that have been left on targets
           setTimeout(() => {
             this.selectedObject.object.remove(marker);
             marker.geometry.dispose();
@@ -585,7 +588,7 @@ export class GameState {
       }
       if (event.code === "KeyD") {
         event.preventDefault();
-         this.playerObject.setMoveRight(false);
+        this.playerObject.setMoveRight(false);
       }
       if (event.code === "KeyV") {
         event.preventDefault();
@@ -727,49 +730,58 @@ export class GameState {
         target,
         baryCoords,
         targetGeometry: geometry,
-      } = this.targetingSystem.getCurrentTarget(this.selectedObject);
+      } = this.targetingSystem.getCurrentTarget();
 
       this.selectedObject = target; // store reference to first intersection ** removed for
       this.baryCoords = baryCoords;
       this.geometry = geometry;
       // now**
+    } else {
+      this.selectedObject = null;
     }
   }
-  establishHitMarker(interpolatedPoint){
-     const marker = new THREE.Mesh(
-            new THREE.SphereGeometry(5, 1, 1),
-            new THREE.MeshPhongMaterial({
-              // color: 0xff00000, // default flesh impact
-              // color: 0x996600, // default metal impact
-              color:
-                this.selectedObject.object.parent.markerConfig.materialConfig
-                  .color || 0xc0c0c0, // base silver
-              // shininess: 50,
-              specular:
-                this.selectedObject.object.parent.markerConfig.materialConfig
-                  .specular || 0xffffff, // bright highlights
-              // specular: 0xaaaaaa,
-              shininess:
-                this.selectedObject.object.parent.markerConfig.materialConfig
-                  .shininess || 100, // higher for metal gloss
-              // emissive: 0x072534,
-              emissive:
-                this.selectedObject.object.parent.markerConfig.materialConfig
-                  .emissive || 0x111111, // subtle glow if needed -- silver
-            }),
-          );
+  setShipGlow(shipGroup, glowing) {
+    const color = glowing ? 0xffff00 : 0x000000;
 
-          marker.position.copy(interpolatedPoint);
+    shipGroup.traverse((child) => {
+      if (child.isMesh && child.material && "emissive" in child.material) {
+        child.material.emissive.set(color);
+        child.material.emissiveIntensity = glowing ? 50 : 1.0;
+      }
+    });
+  }
 
-          const parentScale = this.selectedObject.object.getWorldScale(
-            new THREE.Vector3(),
-          );
+  establishHitMarker(interpolatedPoint) {
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(5, 1, 1),
+      new THREE.MeshPhongMaterial({
+        // color: 0xff00000, // default flesh impact
+        // color: 0x996600, // default metal impact
+        color:
+          this.selectedObject.object.parent.markerConfig.materialConfig.color ||
+          0xc0c0c0, // base silver
+        // shininess: 50,
+        specular:
+          this.selectedObject.object.parent.markerConfig.materialConfig
+            .specular || 0xffffff, // bright highlights
+        // specular: 0xaaaaaa,
+        shininess:
+          this.selectedObject.object.parent.markerConfig.materialConfig
+            .shininess || 100, // higher for metal gloss
+        // emissive: 0x072534,
+        emissive:
+          this.selectedObject.object.parent.markerConfig.materialConfig
+            .emissive || 0x111111, // subtle glow if needed -- silver
+      }),
+    );
 
-          marker.scale.set(
-            1 / parentScale.x,
-            1 / parentScale.y,
-            1 / parentScale.z,
-          );
-          return marker;
+    marker.position.copy(interpolatedPoint);
+
+    const parentScale = this.selectedObject.object.getWorldScale(
+      new THREE.Vector3(),
+    );
+
+    marker.scale.set(1 / parentScale.x, 1 / parentScale.y, 1 / parentScale.z);
+    return marker;
   }
 }

@@ -9,6 +9,8 @@ const shipTexture = shipLoader.load("/shipTexture.jpg");
 const flameTexture = shipLoader.load("/fire.png");
 const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+// material.emissive = true;
+// material.emissiveIntensity  = 20;
 
 const canvas2 = document.createElement("canvas");
 const ctx = canvas2.getContext("2d");
@@ -92,12 +94,12 @@ export function assembleBasicShip(name, spawnPosition = { x: 0, y: 0, z: 0 }) {
   spaceShipGroup.receiveShadow = true;
 
   // const ground = makeBoxInstance(boxGeometry, "#964B00", 0, 0);
-  const engineChamber = new THREE.Mesh(boxGeometry, material);
+  const engineChamber = new THREE.Mesh(boxGeometry, material.clone());
   //   const engineChamber = makeBoxInstance(boxGeometry, 0x00000, 0, 0);
-  const engineChamber2 = new THREE.Mesh(boxGeometry, material);
+  const engineChamber2 = new THREE.Mesh(boxGeometry, material.clone());
 
-  const engineMount = new THREE.Mesh(boxGeometry, material);
-  const cargoHold = new THREE.Mesh(boxGeometry, material);
+  const engineMount = new THREE.Mesh(boxGeometry, material.clone());
+  const cargoHold = new THREE.Mesh(boxGeometry, material.clone());
 
   const radius = 3.5;
 

@@ -11,18 +11,22 @@ export class TargetingSystem {
 
   /*sets the current target based off the raycaster */
   getCurrentTarget(currentTarget) {
-    console.log({currentTarget});
     if (this.intersects.length) {
-      if (this.intersects[0] === currentTarget) return;
+      // if (this.intersects[0] === currentTarget) return;
       const target = this.intersects[0];
-      console.log({ target });
+      // console.log(currentTarget);
       const baryCoords = target.barycoord;
       const targetGeometry = target.object.geometry;
+      console.log(target);
+      
+
       return { target, baryCoords, targetGeometry };
     } else {
       return false;
     }
   }
+
+
   /*gathers current camera positions and objects within range of the weapon.attackRange,  */
   syncAim() {
     this.camera.updateMatrixWorld();
