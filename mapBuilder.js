@@ -1,4 +1,5 @@
-import * as THREE from "three";import * as dat from "lil-gui";
+import * as THREE from "three";
+import * as dat from "lil-gui";
 import vertexShader from "./src/shaders/vertexWorldOceanHeightMap.glsl?raw";
 import fragmentShader from "./src/shaders/fragmentWorldOceanHeightMap.glsl?raw";
 export class MapBuilder {
@@ -9,7 +10,7 @@ export class MapBuilder {
     this.fragmentShader = fragmentShader;
     this.bumpScale = 10;
     this.disMap = new THREE.TextureLoader()
-      .setPath("./public/")
+      // .setPath("./public/")
       // .load("worldHeightMap.png");
       // .load("shirtGrey.png");
       // .load("cityHeightMap.png");
@@ -233,6 +234,7 @@ export class MapBuilder {
     terrainGroup.interactable = false;
     terrainGroup.markerConfig = {
       materialConfig: {
+        type: "earth",
         color: "#804e33",
         specular: "#b2b9bf",
         shininess: 100,

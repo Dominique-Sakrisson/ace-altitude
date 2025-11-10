@@ -134,6 +134,13 @@ import { MenuActions } from "./menuActions";export default {
         parent: "hud",
         className: "hudControls",
       },
+      {
+        element: "div",
+        id: "hudDist",
+        textContent: "Distance: ",
+        parent: "hud",
+        className: "hudControls",
+      },
     ],
   },
   // toolTip: {

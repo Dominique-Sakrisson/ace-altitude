@@ -1,5 +1,4 @@
-import * as THREE from "three";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import * as THREE from "three";import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PlayerSetup } from "./playerSetup";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
@@ -14,7 +13,12 @@ import { GlobeParticleSystem } from "./src/globeParticleSystem";
 import menuData from "./src/ui/menuData";
 import { MapBuilder } from "./mapBuilder";
 import { InventorySystem } from "./src/inventorySystem";
-import { morphObject, generateTerrain, createBullet } from "./objectHelper";
+import {
+  morphObject,
+  generateTerrain,
+  createBullet,
+  createMaterial,
+} from "./objectHelper";
 import { TargetingSystem } from "./src/targetingSystem";
 
 //need to work in a level state to pass in
@@ -28,9 +32,11 @@ export class GameState {
     scene,
     canvas,
     renderer,
+    socket,
   }) {
     this.canvas = canvas;
     this.renderer = renderer;
+    this.socket = socket;
     this.controlsEnabled = false;
     this.reticleVisible = false;
     this.isPaused = false;
@@ -48,7 +54,7 @@ export class GameState {
     this.interact = false;
     this.interacting = false;
     this.showInteract = false;
-    this.playerObject = new PlayerSetup(window, camera);
+    this.playerObject = new PlayerSetup(window, camera, socket.id);
     this.moveForward = false;
     this.moveBackward = false;
     this.moveLeft = false;
@@ -57,6 +63,7 @@ export class GameState {
     this.mouseY = 0;
     this.center = false;
     this.bloodSystems = [];
+    this.markers = [];
     // this.globeSystems = [];
     this.globeSystems = null;
     this.hits = new Map();
@@ -87,6 +94,34 @@ export class GameState {
     this.updatedInventory = false;
     this.bulletSpeed = 35;
     this.selectAbleShips = [];
+    this.objectLoader = new THREE.ObjectLoader();
+    this.socket.on("join players", (players) => {
+      console.log(this.socket, "socket");
+      console.log("helooooo", typeof players);
+      // const group = this.OBJLoader.parse(players);
+      const group = this.objectLoader.parse(players);
+      // const group = new THREE.Group(players)
+      // Optionally set a position
+      if (players.position) {
+        const { x = 0, y = 0, z = 0 } = players.position;
+        group.position.set(x, y, z);
+      }
+      console.log(this.scene.children, "before the scene add");
+      this.scene.add(group);
+      console.log(this.scene.children, "after the scene add");
+      // if (players.length) {
+      //   players.map((player) => {
+      //     console.log(player, "one player");
+      //     const threeGroup = new THREE.Group(player.group);
+      //     console.log(this.scene);
+      //     threeGroup.position.set(new THREE.Vector3(player.group.position));
+      //     this.scene.add(new THREE.Group(player.group));
+      //     console.log(this.scene);
+      //   });
+      // }
+
+      // });
+    });
   }
   addSelectableShip(ship) {
     this.selectAbleShips.push(ship);
@@ -96,21 +131,23 @@ export class GameState {
     const moveSpeed = Math.PI / DEFAULT_ROLLSPEED;
     this.controls.movementSpeed = moveSpeed;
     //pass in negative amount to increase sensitivity
-    console.log(this.playerObject.getLookSensitivity());
+
     // this.playerObject.setLookSensitivity(DEFAULT_ROLLSPEED - 10);
     // this.playerObject.setLookSensitivity( 0.05);
     this.controls.rollSpeed = this.playerObject.getLookSensitivity();
   }
   updateShots(time) {
-    if (this.getControlsEnabled()) {
-      this.activeShots.forEach((shot) => {
-        shot.position.add(
-          shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
-        );
-        shot.rotation.z = time;
-        shot.rotation.x = time * Math.random() * 0.000036;
-      });
-    }
+    // if (this.getControlsEnabled()) {
+    this.activeShots.forEach((shot) => {
+      shot.position.add(
+        // console.log(shot.userData);
+
+        shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
+      );
+      shot.rotation.z = time;
+      shot.rotation.x = time * Math.random() * 0.000036;
+    });
+    // }
   }
 
   itemMouseOver(e) {
@@ -171,11 +208,57 @@ export class GameState {
   initKeyHandlers() {
     this.canvas.addEventListener("click", () => {
       if (this.playerObject.playerCamera.position.x === undefined) return;
-      if (this.getControlsEnabled()) {
+      // console.log(this.playerObject.playerShip.position, " ship position");
+      // console.log(this.playerObject.playerCamera.position, " camera position");
+      // console.log(this.playerObject.playerCamera.getWorldPosition(new THREE.Vector3()), " camera world");
+      if (this.playerObject.playerShip.position) {
+        const direction = new THREE.Vector3();
+        // console.log(
+        //   this.playerObject.playerShip.object.parent.position,
+        //   "ship position",
+        // );
+        // console.log(this.playerObject.playerCamera, "camera postiion");
+        // console.log(
+        //   this.playerObject.playerShip.group,
+        //   "group camera postiion",
+        // );
+        const pos = {
+          group: true,
+          activeGroup: this.playerObject.playerShip.group,
+          // cameraPos: this.playerObject.playerCamera,
+          cameraPos: this.playerObject.playerShip.group.children[0].position,
+          cameraDir:
+            this.playerObject.playerShip.object.parent.getWorldDirection(
+              direction,
+            ),
+          // cameraDir: this.playerObject.playerShip.object.getWorldDirection(direction),
+          // cameraPos: this.playerObject.playerCamera.position,
+          // cameraDir: this.playerObject.playerCamera.direction,
+          direction,
+        };
+        createBullet(
+          // this.playerObject.playerShip.position,
+          this.playerObject.playerCamera,
+          this.scene,
+          this.activeShots,
+          pos,
+        );
+      } else {
+        const direction = new THREE.Vector3();
+        const pos = {
+          // cameraPos: this.playerObject.playerCamera.position,
+          cameraPos: this.playerObject.playerCamera,
+          // cameraDir: this.playerObject.playerCamera.direction,
+          cameraDir:
+            this.playerObject.playerCamera.getWorldDirection(direction),
+          direction,
+        };
+        // if (this.getControlsEnabled()) {
         createBullet(
           this.playerObject.playerCamera,
           this.scene,
           this.activeShots,
+          pos,
         );
       }
     });
@@ -227,14 +310,14 @@ export class GameState {
     // Resize the renderer and camera when the window is resized
     window.addEventListener("resize", () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
     });
   }
 
   buildInventory(localInventory) {
     const inventoryElement = document.getElementById("inventory");
-    console.log({ localInventory });
+
     localInventory.map(() => {
       const item = document.createElement("li");
       const defaultItem = this.inventorySystem.itemLibrary.getItem(0);
@@ -370,21 +453,21 @@ export class GameState {
       this.globeSystems = globeSystem;
     }
     // this.globeSystems.push(globeSystem);
-    // console.log(this.globeSystems, " globe systems");
+    //
     // for (let i = 0; i < 20; i++) {
     //   const heightTerrain = this.mapBuilder.buildGlobe(
     //     100 + Math.random() * group.children[0].geometry.parameters.radius / 20,
     //     1,
     //     1,
     //   );
-    //   console.log({ group });
+    //
     //   heightTerrain.terrainGroup.position.x = (Math.random() - 0.5) * 3000;
     //   (heightTerrain.terrainGroup.position.y =
     //     heightTerrain.terrainGroup.position.y - Math.random() * 1600),
     //     (heightTerrain.terrainGroup.position.z =
     //       heightTerrain.terrainGroup.position.z - Math.random() * 1600),
     //     heightTerrain.terrainGroup.remove(heightTerrain.baseSphere);
-    //   console.log(heightTerrain.terrainGroup);
+    //
     //   this.scene.add(heightTerrain.terrainGroup);
     //   // group.add(heightTerrain);
     // }
@@ -406,6 +489,7 @@ export class GameState {
     }
     // let globePieces = [];
   };
+
   setupControls = () => {
     this.configureControls();
     this.canvas.addEventListener("mousemove", (event) => {
@@ -416,8 +500,31 @@ export class GameState {
       this.mouseY = -((event.clientY / canvasHeight) * 2 - 1); // Range from -1 to 1 (vertical)
     });
     this.window.addEventListener("mousemove", (event) => {
-      const { raycaster } = this.playerObject.playerCamera;
+      if (this.playerObject.playerShip.position) {
+        const { raycaster } = this.playerObject.playerCamera;
+
+        const targetPosition =
+          //  this.playerObject.playerCamera.position
+          this.playerObject.playerCamera.raycaster.ray.direction.clone();
+        // .add(this.playerObject.playerCamera.raycaster.ray.direction);
+
+        // this.playerObject.playerShip.object.parent.lookAt(targetPosition);
+        // this.playerObject.playerShip.group.lookAt(targetPosition);
+      }
       this.setSelectedObject(event);
+      // console.log(this.playerObject.playerShip);
+      //check that the selected object is of the ship options, then set that as the selected ship
+      // console.log(this.selectAbleShips);
+      // console.log(this.selectedObject);
+      if (
+        this.selectedObject &&
+        this.selectAbleShips.length &&
+        this.selectAbleShips.filter(
+          (item) => item.uuid === this.selectedObject.object.uuid,
+        )
+      ) {
+        this.selectedShip = this.selectedObject;
+      }
       const inRange = this.selectedObject?.distance <= this.interactionDistance;
       this.showInteract = false;
       if (
@@ -432,7 +539,7 @@ export class GameState {
 
     this.window.addEventListener("click", (event) => {
       // this.setSelectedObject(event);
-      console.log(this.targetingSystem);
+
       const { raycaster } = this.playerObject.playerCamera;
       // const mouse = new THREE.Vector2();
       const centerNDC = new THREE.Vector2(0, 0); // center of screen
@@ -452,7 +559,21 @@ export class GameState {
 
           const marker = this.establishHitMarker(interpolatedPoint);
 
+          if (marker.failure) return;
+
+          marker.position.copy(interpolatedPoint);
+
           this.selectedObject.object.add(marker);
+
+          this.markers.push(marker);
+
+          if (this.markers.length > 10) {
+            this.markers.forEach((mark) => {
+              this.scene.remove(mark);
+              mark.geometry.dispose();
+              mark.material.dispose();
+            });
+          }
 
           // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
 
@@ -466,22 +587,21 @@ export class GameState {
             );
             if (this.gameHasStarted) {
               const group = hit.object.parent;
-              // console.log(group);
+              //
 
               // Increment count
               const prev = this.hits.get(group) || 0;
               const next = prev + 1;
               this.hits.set(group, next);
 
-              // console.log(`Group ${group.uuid} has ${next} hits`);
+              //
 
               // Check if it reached 10
               if (next >= 5) {
-                // console.log("🎯 Group reached 10 hits!", group);
+                //
 
                 // Optional: trigger something (bleeding effect, removal, etc.)
                 if (group.name === "earthSphere") {
-                  console.log({ group });
                   this.removeGroup(group);
                   this.hits.delete(group);
                 }
@@ -495,11 +615,14 @@ export class GameState {
           }
           //cleanup the markers that have been left on targets
           setTimeout(() => {
-            this.selectedObject.object.remove(marker);
+            if (this.selectedObject) {
+              this.selectedObject.object.remove(marker);
+            }
+            if (marker.parent === null) return;
+            marker.parent.remove(marker);
             marker.geometry.dispose();
             marker.material.dispose();
           }, 200);
-          // console.log("Triangle vertices:", a, b, c);
         }
       }
     });
@@ -509,17 +632,17 @@ export class GameState {
 
       if (isInputFocused) {
         // Only intercept keys you want globally while input is focused
-        // console.log(event);
+        //
         if (this.isASCII(event?.key)) {
           active.value = event.key; // use active, not event.target
           const confirmButton = document.getElementById("confirmButton");
-          // console.log(confirmButton);
+          //
           confirmButton.classList.remove("undefined");
           confirmButton.classList.add("updates");
           this.markOptionChanged(active.id, event.key);
         }
         if (event.key === "Escape") {
-          // console.log("Escape pressed, blur input");
+          //
           active.blur();
         }
         return; // Don't handle other keys while typing
@@ -556,7 +679,7 @@ export class GameState {
           const state = !this.getInteracting();
           this.setInteracting(state);
           this.setInteract(state);
-          console.log({ state });
+
           if (!state && this.selectedObject) {
             this.scene.remove(this.selectedObject);
           }
@@ -731,57 +854,80 @@ export class GameState {
         baryCoords,
         targetGeometry: geometry,
       } = this.targetingSystem.getCurrentTarget();
-
+      document.getElementById("hudDist").innerHTML =
+        `Distance \n ${target.distance.toFixed(2)}`;
       this.selectedObject = target; // store reference to first intersection ** removed for
       this.baryCoords = baryCoords;
       this.geometry = geometry;
       // now**
     } else {
       this.selectedObject = null;
+
+      document.getElementById("hudDist").innerHTML = `Distance \n  ${0}`;
     }
   }
+  confirmSelectedShip() {
+    // console.log(this.selectedShip);
+    this.playerObject.setPlayerShip(this.selectedShip);
+    this.selectAbleShips = [];
+    this.scene.add(this.playerObject.playerShip.group);
+    this.socket.emit("new player", this.playerObject.playerShip.group.toJSON());
+  }
   setShipGlow(shipGroup, glowing) {
+    if (!shipGroup) return;
+    if (this.playerObject.playerShip.position) {
+      //functional override if players already selected a ship
+      glowing = false;
+    }
     const color = glowing ? 0xffff00 : 0x000000;
 
     shipGroup.traverse((child) => {
       if (child.isMesh && child.material && "emissive" in child.material) {
         child.material.emissive.set(color);
-        child.material.emissiveIntensity = glowing ? 50 : 1.0;
+        child.material.emissiveIntensity = glowing ? 2 : 1.0;
       }
     });
   }
+  addHalo(mesh) {
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffff00,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.BackSide, // render the backside to get the outline
+    });
+
+    const haloMesh = new THREE.Mesh(mesh.geometry, haloMaterial);
+    haloMesh.scale.multiplyScalar(1.05); // slightly bigger
+    mesh.add(haloMesh); // attach to the mesh
+  }
 
   establishHitMarker(interpolatedPoint) {
-    const marker = new THREE.Mesh(
-      new THREE.SphereGeometry(5, 1, 1),
-      new THREE.MeshPhongMaterial({
-        // color: 0xff00000, // default flesh impact
-        // color: 0x996600, // default metal impact
-        color:
-          this.selectedObject.object.parent.markerConfig.materialConfig.color ||
-          0xc0c0c0, // base silver
-        // shininess: 50,
-        specular:
-          this.selectedObject.object.parent.markerConfig.materialConfig
-            .specular || 0xffffff, // bright highlights
-        // specular: 0xaaaaaa,
-        shininess:
-          this.selectedObject.object.parent.markerConfig.materialConfig
-            .shininess || 100, // higher for metal gloss
-        // emissive: 0x072534,
-        emissive:
-          this.selectedObject.object.parent.markerConfig.materialConfig
-            .emissive || 0x111111, // subtle glow if needed -- silver
-      }),
-    );
+    // let marker;
+    const { type, markerConfig } = this.selectedObject.object.parent;
+    if (!markerConfig) {
+      return { failure: "not a markable surface" };
+    }
+    const { materialConfig } = markerConfig;
+    if (type === "Group") {
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(5, 1, 1),
+        new THREE.MeshPhongMaterial({
+          color: materialConfig.color || 0xc0c0c0, // base silver
+          specular: materialConfig.specular || 0xffffff, // bright highlights
+          shininess: materialConfig.shininess || 100, // higher for metal gloss
+          emissive: materialConfig.emissive || 0x111111, // subtle glow if needed -- silver
+        }),
+      );
+      marker.position.copy(interpolatedPoint);
 
-    marker.position.copy(interpolatedPoint);
+      const parentScale = this.selectedObject.object.getWorldScale(
+        new THREE.Vector3(),
+      );
 
-    const parentScale = this.selectedObject.object.getWorldScale(
-      new THREE.Vector3(),
-    );
-
-    marker.scale.set(1 / parentScale.x, 1 / parentScale.y, 1 / parentScale.z);
-    return marker;
+      marker.scale.set(1 / parentScale.x, 1 / parentScale.y, 1 / parentScale.z);
+      return marker;
+    } else {
+      console.log("some bs", this.selectedObject);
+    }
   }
 }

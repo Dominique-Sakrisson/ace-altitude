@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
+import * as dat from "lil-gui";
 
 export class PlayerSetup {
-  constructor(window, camera) {
+  constructor(window, camera, socketId) {
+    this.id = socketId;
     this.pointer = new THREE.Vector2();
-    this.raycaster = new THREE.Raycaster();
+    // this.raycaster = new THREE.Raycaster();
     this.window = window;
     this.lookSensitivity = Math.PI / 24;
     this.playerCamera = camera;
@@ -29,6 +31,7 @@ export class PlayerSetup {
     };
     this.height = 100;
     this.size = 40;
+
     // this.boost = new Boost({
     //   activeBoost: this.activeBoost,
     //   boostSpeed: this.boostSpeed,
@@ -53,8 +56,11 @@ export class PlayerSetup {
     this.moveBackward = false;
     this.moveLeft = false;
     this.moveRight = false;
-
+    this.playerShip = {};
     this.velocity = new THREE.Vector3(0, 0, 0);
+   
+
+    // this.character = gameState.selectedShip;
 
     if (this.getActiveBoost()) {
       this.moveSpeed = this.getCurrentSpeed() + 1;
@@ -70,6 +76,23 @@ export class PlayerSetup {
     this.centerVision = false;
     // this.window.addEventListener('mousemove', this.onMouseMove);
   }
+  setPlayerShip(ship) {
+    this.playerShip = {};
+    this.playerShip = ship;
+    this.playerCamera.add(this.playerShip.object.parent);
+    this.playerShip.object.parent.position.set(this.playerCamera.position);
+    this.playerShip.object.parent.position.set(0, -35, -40);
+    this.playerShip.object.parent.rotation.x += 3.35;
+    this.playerShip.object.parent.rotation.y = 0;
+    this.playerShip.object.parent.rotation.z = 0;
+   
+    const group = new THREE.Group();
+    group.add(this.playerCamera);
+  
+    this.playerShip.group = group;
+
+  }
+
   setLookSensitivity(amount) {
     this.lookSensitivity = Math.PI / amount;
   }
@@ -123,6 +146,14 @@ export class PlayerSetup {
   //   options.set("right");
   //   options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed);
   // }
+  updateCharacterPos(character) {
+    character.position = this.playerCamera.position;
+    character.rotation = this.playerCamera.rotation;
+    if (this.playerShip.keys) {
+      this.playerShip.position = new THREE.Vector3(this.playerCamera.position);
+      this.playerShip.rotation = this.playerCamera.rotation;
+    }
+  }
 
   operateMovement(deltaTime, time, mouseDirection) {
     const forwardDirection = mouseDirection.clone().setY(0).normalize(); // Direction of the mouse for forward movement
@@ -135,16 +166,22 @@ export class PlayerSetup {
     }
 
     if (this.getMoveForward()) {
-      -this.playerCamera.position.addScaledVector(
-        shipDirection,
-        this.moveSpeed,
-      );
+      if (!this.playerShip.position) {
+        this.playerCamera.position.addScaledVector(
+          shipDirection,
+          this.moveSpeed,
+        );
+      }
+      this.handleMoveForwardWithShip(shipDirection, time);
     }
     if (this.getMoveBackward()) {
-      this.playerCamera.position.addScaledVector(
-        shipDirection,
-        -this.moveSpeed,
-      );
+      if (!this.playerShip.position) {
+        this.playerCamera.position.addScaledVector(
+          shipDirection,
+          -this.moveSpeed,
+        );
+      }
+      this.handleMoveBackwardWithShip(shipDirection, time);
     }
 
     // Strafe movement using the this.playerCamera's right vector
@@ -152,11 +189,20 @@ export class PlayerSetup {
     right.crossVectors(this.playerCamera.up, shipDirection).normalize();
 
     if (this.getMoveLeft()) {
-      this.playerCamera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
+      if (!this.playerShip.position) {
+        this.playerCamera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
+      } else {
+        this.handleMoveLeftWithShip(shipDirection, time);
+      }
+
       // this.playerCamera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
     }
     if (this.getMoveRight()) {
-      this.playerCamera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
+      if (!this.playerShip.position) {
+        this.playerCamera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
+      } else {
+        this.handleMoveRightWithShip(shipDirection, time);
+      }
       // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
     }
   }
@@ -219,9 +265,6 @@ export class PlayerSetup {
     const intersects = this.raycaster.intersectObjects(
       this.setCenterVision.children,
     );
-    if (intersects.length) {
-      console.log(intersects);
-    }
   };
 
   //modifier: positive float under 1.0
@@ -241,4 +284,55 @@ export class PlayerSetup {
     // Convert back to radians
     camera.rotation.x = THREE.MathUtils.degToRad(snappedDeg);
   }
+  handleMoveForwardWithShip(shipDirection, time) {
+    if (this.playerShip.position) {
+      // this.playerShip.object.parent.position.addScaledVector(
+      //   shipDirection,
+      //   this.moveSpeed,
+      // ) * -1;
+      this.playerShip.group.position.addScaledVector(
+        shipDirection,
+        this.moveSpeed,
+      ) * -1;
+    }
+  }
+  handleMoveBackwardWithShip(shipDirection, time) {
+    if (this.playerShip.position) {
+      // this.playerShip.object.parent.position.addScaledVector(
+      //   shipDirection,
+      //   -this.moveSpeed,
+      // );
+      this.playerShip.group.position.addScaledVector(
+        shipDirection,
+        -this.moveSpeed,
+      );
+    }
+  }
+  handleMoveLeftWithShip(shipDirection, time) {
+    if (this.playerShip.position) {
+      // this.playerShip.object.parent.rotateZ(THREE.MathUtils.degToRad(time * 1));
+      this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(time * 0.0001));
+    }
+  }
+  handleMoveRightWithShip(shipDirection, time) {
+    if (this.playerShip.position) {
+      this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(-time * 0.0001));
+      // this.playerShip.object.parent.rotateZ(
+      //   THREE.MathUtils.degToRad(-time * 1),
+      // );
+    }
+  }
+
+  // positionShipTool() {
+  //   if (!this.playerShip || !this.playerShip.object) return;
+  //   this.gui
+  //     .add(this.playerShip.object.position, "x", -100, 100, 1)
+  //     .onChange((value) => {
+  //       this.playerShip.object.position.set(
+  //         value,
+  //         this.playerShip.object.position.y,
+  //         this.playerShip.object.position.z,
+  //       );
+  //     });
+  // }
 }

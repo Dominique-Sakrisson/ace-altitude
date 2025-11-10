@@ -1,5 +1,5 @@
 import * as dat from "lil-gui";
-export function initGui({ spaceShipGroup }) {
+export function initGui({ spaceShipGroup, gameState }) {
   const gui = new dat.GUI();
 
   const spaceShipPositionGUIHelper = {

@@ -92,6 +92,15 @@ export function assembleBasicShip(name, spawnPosition = { x: 0, y: 0, z: 0 }) {
   spaceShipGroup.name = name;
   spaceShipGroup.castShadow = true;
   spaceShipGroup.receiveShadow = true;
+  spaceShipGroup.markerConfig = {
+        materialConfig: {
+          type: "metalic",
+          color: "#afd81dff",
+          specular: "#d49919ff",
+          shininess: 100,
+          emissive: "#d49919ff",
+        },
+      };
 
   // const ground = makeBoxInstance(boxGeometry, "#964B00", 0, 0);
   const engineChamber = new THREE.Mesh(boxGeometry, material.clone());

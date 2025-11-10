@@ -1,4 +1,7 @@
-import * as THREE from "three"; //adds an existing object to the scene//scene data = {x, y, scene, objectArray}
+import * as THREE from "three";import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+
+import { FontLoader } from "three/addons/loaders/FontLoader.js";
+
 export function addObject(x, y, obj) {
   obj.position.x = sceneData.x * spread;
   obj.position.y = sceneData.y * spread;
@@ -53,10 +56,10 @@ export function morphObject(time, vertices, noise, sphere) {
  * @example
  * createBullet(camera, scene, shots)
  */
-export function createBullet(camera, scene, shots) {
-  const length = 5,
-    width = 5,
-    depth = 5;
+export function createBullet(camera, scene, shots, pos) {
+  const length = 50,
+    width = 50,
+    depth = 50;
   const textureLoader = new THREE.TextureLoader();
 
   const bullet = new THREE.SphereGeometry(length, width, depth);
@@ -124,31 +127,77 @@ export function createBullet(camera, scene, shots) {
   const mesh = new THREE.Mesh(bullet, createMaterial());
   const flameMesh = new THREE.Mesh(bullet, flameMaterial);
   const projectileGroup = new THREE.Group();
-  const direction = new THREE.Vector3();
-  camera.getWorldDirection(direction); // Get the camera's forward vector for this frame
+  const worldPos = new THREE.Vector3();
+  const worldDirection = new THREE.Vector3();
+  camera.updateMatrixWorld(true);
+  if (!pos.activeGroup) {
+    camera.getWorldPosition(worldPos);
+    camera.getWorldDirection(worldDirection); // Get the camera's forward vector for this frame
+  } else {
+   
+    const groupCam = pos.activeGroup.children[0];
 
+    groupCam.getWorldPosition(worldDirection);
+  }
   const distance = 3; // Distance from the camera for bullet spawn based on camera position in this frame
-  const bulletPosition = camera.position
-    .clone()
-    .addScaledVector(direction, distance);
+  // const bulletPosition = camera.position.clone().addScaledVector(direction, distance);
+  const bulletPosition = camera.position.clone().addScaledVector(worldDirection, distance)
+    
+  // const bulletPosition = pos.group
+  //   ? camera.parent.position.clone().addScaledVector(direction, distance)
+  //   : camera.position.clone().addScaledVector(direction, distance);
+
   const { x, y, z } = bulletPosition;
 
-  projectileGroup.userData.direction = direction.clone();
+  // projectileGroup.userData.direction = direction.clone();
+  projectileGroup.userData.direction = camera
+    .getWorldDirection(worldDirection)
+    .clone();
   projectileGroup.add(mesh);
   projectileGroup.add(flameMesh);
-  projectileGroup.position.x = x;
-  projectileGroup.position.y = y;
-  projectileGroup.position.z = z;
+  if (pos.group) {
+    projectileGroup.position.x = x;
+    projectileGroup.position.y = y;
+    projectileGroup.position.z = z;
+  } else {
+    projectileGroup.position.x = x;
+    projectileGroup.position.y = y;
+    projectileGroup.position.z = z;
+  }
+  // pos.activeGroup.add(projectileGroup)
   spawnMuzzleFlash(bulletPosition, muzzleFlashMaterial, camera, scene);
   shots.push(projectileGroup);
   scene.add(projectileGroup);
 
   window.setTimeout(() => {
     scene.remove(projectileGroup);
-  }, 1000);
+  }, 3000);
+}
+//make this take in the string to add, and config for the geometry
+//ideally make the values connected to the gui
+//give the geometry and onclick for the editor moode to resize etc
+export async function createTextForScene(config) {
+  const font = await loadFont(
+    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+  );
+  const fontConfig = { ...config, font: font };
+
+  const geometry = new TextGeometry(config.phrase, fontConfig);
+
+  const mesh = new THREE.Mesh(geometry, createMaterial());
+  mesh.position.set(config.x, config.y, config.z);
+  return mesh;
 }
 
-function createMaterial() {
+// promisify font loading
+function loadFont(url) {
+  return new Promise((resolve, reject) => {
+    const fontLoader = new FontLoader();
+    fontLoader.load(url, resolve, undefined, reject);
+  });
+}
+
+export function createMaterial() {
   const material = new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
     transparent: true, // Enable transparency

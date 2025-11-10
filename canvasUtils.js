@@ -10,3 +10,12 @@ export function canvasSetup() {
   document.body.appendChild(renderer.domElement);
   return { canvas, renderer };
 }
+
+export function addObject(x, y, z, obj) {
+    obj.position.x = x;
+    obj.position.y = y;
+    obj.position.z = z;
+
+    scene.add(obj);
+    objects.push(obj);
+  }

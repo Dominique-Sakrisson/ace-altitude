@@ -1,5 +1,4 @@
-"use strict";
-import * as THREE from "three";
+"use strict";import * as THREE from "three";
 import "./style.css";
 import WebGL from "three/addons/capabilities/WebGL.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
@@ -18,14 +17,19 @@ import { Lighting } from "./src/lighting.js";
 import { menuInit } from "./src/ui/MenuBuilder";
 import vertexShader from "./src/shaders/vertex.glsl?raw";
 import fragmentShader from "./src/shaders/fragment.glsl?raw";
+import { createMaterial, createTextForScene } from "./objectHelper";
+
+// client/main.js
+import { io } from "socket.io-client";
+const socket = io("http://localhost:3000"); // your Node.js server
 
 if (WebGL.isWebGL2Available()) {
   const { canvas, renderer } = canvasSetup();
 
-  const fov = 80;
+  const fov = 120;
   const aspect = 2;
   const near = 0.1;
-  const far = 40000;
+  const far = 10000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
   const scene = new THREE.Scene();
@@ -37,8 +41,10 @@ if (WebGL.isWebGL2Available()) {
     scene,
     canvas,
     renderer,
+    socket
   };
 
+  //
   const gameState = new GameState({ ...gameConfig });
 
   const mapBuilder = new MapBuilder(gameState);
@@ -56,6 +62,7 @@ if (WebGL.isWebGL2Available()) {
   gameState.displayMenu(mainMenu); // accessing this from the mainMenu ID in the index.html
   if (gameState.getGameHasStarted()) {
     gameState.setupControls();
+    gameState.setupEvents();
   }
 
   gameState.audioLoader.load("./rocketEngine.wav", (buffer) => {
@@ -76,30 +83,21 @@ if (WebGL.isWebGL2Available()) {
   const spread = 15;
   const bulletSpeed = { value: 35 }; // Adjust bullet speed here
 
-  function addObject(x, y, z, obj) {
-    obj.position.x = x;
-    obj.position.y = y;
-    obj.position.z = z;
-
-    scene.add(obj);
-    objects.push(obj);
-  }
-
   //moved to other module
-  function createMaterial() {
-    const material = new THREE.MeshPhongMaterial({
-      side: THREE.DoubleSide,
-      transparent: true, // Enable transparency
-      opacity: 0.5, // Adjust opacity level (0 = fully transparent, 1 = fully opaque)
-    });
+  // function createMaterial() {
+  //   const material = new THREE.MeshPhongMaterial({
+  //     side: THREE.DoubleSide,
+  //     transparent: true, // Enable transparency
+  //     opacity: 0.5, // Adjust opacity level (0 = fully transparent, 1 = fully opaque)
+  //   });
 
-    const hue = Math.random();
-    const saturation = 1;
-    const luminance = 0.5;
-    material.color.setHSL(hue, saturation, luminance);
+  //   const hue = Math.random();
+  //   const saturation = 1;
+  //   const luminance = 0.5;
+  //   material.color.setHSL(hue, saturation, luminance);
 
-    return material;
-  }
+  //   return material;
+  // }
 
   const spaceShipGroup = assembleBasicShip("automation ship");
   spaceShipGroup.add(gameState.engineSound);
@@ -110,6 +108,7 @@ if (WebGL.isWebGL2Available()) {
     y: -950,
     z: 0,
   });
+
   const fourthShip = assembleBasicShip("target ship", {
     x: 150,
     y: -950,
@@ -147,6 +146,10 @@ if (WebGL.isWebGL2Available()) {
   // const toggles = { spaceShipGroup, directionalLight };
 
   const gui = initGui(toggles);
+
+  gui.addFolder("player Controls");
+
+  let guiAdd = false;
 
   gui.add(bulletSpeed, "value");
 
@@ -263,7 +266,7 @@ if (WebGL.isWebGL2Available()) {
 
   const topDownShipDisplay = new Lighting(scene, lightConfig);
   const bottomLeftShipDisplay = new Lighting(scene, lightConfig);
-  console.log(gameState.playerObject.playerCamera.position);
+
   topDownShipDisplay.addBasicLight(
     new THREE.Vector3(
       secondShip.position.x,
@@ -385,13 +388,6 @@ if (WebGL.isWebGL2Available()) {
 
   /*TODO: move this fond loaded stuff to some thing already initialized on the gamestate class */
 
-  // promisify font loading
-  function loadFont(url) {
-    return new Promise((resolve, reject) => {
-      gameState.FontLoader.load(url, resolve, undefined, reject);
-    });
-  }
-
   const interactTextConfig = {
     phrase: "The one behind you",
     x: gameState.playerObject.playerCamera.position.x - 250,
@@ -419,24 +415,8 @@ if (WebGL.isWebGL2Available()) {
     bevelSegments: 5,
   };
 
-  //make this take in the string to add, and config for the geometry
-  //ideally make the values connected to the gui
-  //give the geometry and onclick for the editor moode to resize etc
-  async function addTextToScene(config) {
-    const font = await loadFont(
-      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
-    );
-    const fontConfig = { ...config, font: font };
-
-    const geometry = new TextGeometry(config.phrase, fontConfig);
-
-    const mesh = new THREE.Mesh(geometry, createMaterial());
-    mesh.position.set(config.x, config.y, config.z);
-    scene.add(mesh);
-  }
-
-  addTextToScene(interactTextConfig);
-  addTextToScene(destroyPlanetTextConfig);
+  scene.add(await createTextForScene(interactTextConfig));
+  scene.add(await createTextForScene(destroyPlanetTextConfig));
 
   let mouseX = 0; // Mouse position on X axis
   let mouseY = 0; // Mouse position on Y axis
@@ -496,46 +476,6 @@ if (WebGL.isWebGL2Available()) {
   iframeGroup.specialInteract = true;
 
   scene.add(iframeGroup);
-  let velocity = new THREE.Vector3(0, 0, 0); // Initial velocity in X, Y, Z
-
-  //velocity is a new 3vector
-  //movespeed is an equation based off players movement stats
-  //deltaTime, change in time since last update
-  //shipdirection an new vector3, gets assigned to the current camera direction
-  //backward direction takes into account the current shipdirection to calculat the reverse
-  //forward direction takes into account the current shipdirection & mouse to interpret the direction in 3d space of movement
-  // function operateMovement(
-  //   velocity,
-  //   moveSpeed,
-  //   deltaTime,
-  //   shipDirection,
-  //   backwardDirection,
-  //   forwardDirection,
-  // ) {
-  //   if (gameState.getMoveBackward()) {
-  //     velocity.add(backwardDirection.multiplyScalar(moveSpeed * deltaTime)); // Move opposite to the mouse direction
-  //   }
-
-  //   if (gameState.playerObject.getMoveForward()) {
-  //     -camera.position.addScaledVector(shipDirection, moveSpeed);
-  //   }
-  //   if (gameState.playerObject.getMoveBackward()) {
-  //     camera.position.addScaledVector(shipDirection, -moveSpeed);
-  //   }
-
-  //   // Strafe movement using the camera's right vector
-  //   const right = new THREE.Vector3();
-  //   right.crossVectors(camera.up, shipDirection).normalize();
-
-  //   if (gameState.playerObject.getMoveLeft()) {
-  //     camera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
-  //     // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
-  //   }
-  //   if (gameState.playerObject.getMoveRight()) {
-  //     camera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
-  //     // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
-  //   }
-  // }
 
   function startInteraction() {
     if (gameState.looper) {
@@ -568,7 +508,6 @@ if (WebGL.isWebGL2Available()) {
   function endInteraction() {
     if (!gameState.getInteract() && !gameState.getInteracting()) {
       // scene.remove(cssObject);
-      console.log("alot?");
     }
   }
   function showInventory() {
@@ -586,11 +525,19 @@ if (WebGL.isWebGL2Available()) {
   }
   function showTip() {
     toolTip.textContent = "Confirm Selection";
-    toolTip.style.display = "block";
+    if (!gameState.playerObject.playerShip.position) {
+      toolTip.style.display = "block";
+    } else {
+      toolTip.style.display = "none";
+    }
     toolTip.style.background = "red";
+    toolTip.onclick = (event) => {
+      if (gameState.selectAbleShips.length && gameState.selectedShip)
+        gameState.confirmSelectedShip();
+    };
   }
   function updateGameState() {
-    if (gameState.getGameHasStarted() && !gameState.shipSelection) {
+    if (gameState.getGameHasStarted()) {
       showTip();
     }
     if (gameState.inventoryDisplay) {
@@ -744,35 +691,82 @@ if (WebGL.isWebGL2Available()) {
   //=============================================================================================
   let lastCheck = 0;
 
-  
+  // Debug line to show camera forward direction
+  const debugLineGeom = new THREE.BufferGeometry();
+  const debugLineMat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+  const debugLine = new THREE.Line(debugLineGeom, debugLineMat);
+  scene.add(debugLine);
+
   function animate(time) {
-    //
-    console.log(gameState.selectAbleShips);
-    console.log(gameState?.selectedObject);
+    if (!guiAdd && gameState.playerObject.playerShip.object) {
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.rotation, "y", -100, 100, 1)
+        .name("rotate y")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.rotation.y = value;
+        });
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.rotation, "x", -10, 10, .01)
+        .name("rotate x")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.rotation.x = value;
+        });
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.rotation, "z", -100, 100, .01)
+        .name("rotate z")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.rotation.z = value;
+        });
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.position, "y", -100, 100, 1)
+        .name("position y")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.position.y = value;
+        });
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.position, "x", -100, 100, 1)
+        .name("position x")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.position.x = value;
+        });
+      gui
+        .add(gameState.playerObject.playerShip.object.parent.position, "z", -100, 100, 1)
+        .name("position z")
+        .onChange((value) => {
+          gameState.playerObject.playerShip.object.parent.position.z = value;
+        });
+        guiAdd = true
+    }
+    // if(gameState.playerObject.playerShip.location){
 
-gameState.selectAbleShips.forEach(ship => gameState.setShipGlow(ship, false))
-    if (gameState?.selectedObject?.object?.uuid) {
-        if(gameState?.selectedObject.object.uuid === gameState?.selectedObject.object.uuid){
+    //   console.log(gameState.playerObject.playerShip)
 
-          gameState.setShipGlow(gameState?.selectedObject.object.parent, true)
+    //   const targetPosition = gameState.playerObject.playerCamera.position
+    //   .clone()
+    //   .add(gameState.playerObject.playerCamera.raycaster.ray.direction);
 
-          console.log("hueheygeuyge");
-          // target.object.parent.material.emissive = new THREE.Color(0xffff00); // bright yellow
-          // target.object.material.emissiveIntensity = 50;
-        }
-        
-        // console.log(target.object);
-      }
+    //   // gameState.playerObject.playerShip.object.parent.lookAt(targetPosition);
+    //   gameState.playerObject.playerShip.object.parent.lookAt(targetPosition);
+    // }
 
-    // if (
-    //   gameState.selectAbleShips.length &&
-    //   gameState.selectAbleShips.includes(gameState?.selectedObject.object.parent))
-    //   {
-    //     console.log("g");
-    //   }
-    
-      // gameState.getGameHasStarted();
-      gameState.controls.enabled = gameState.getControlsEnabled();
+    //  if(gameState.playerObject.playerShip.position){
+
+    //    // / Get the camera's world direction
+    // const dir = new THREE.Vector3();
+    // gameState.playerObject.playerCamera.getWorldDirection(dir);
+    // console.log(gameState.playerObject.playerShip);
+    // // Draw a visible line from the ship to show the direction
+    // debugLine.geometry.setFromPoints([
+    //  gameState.playerObject.playerShip.object.parent.position,
+    //  gameState.playerObject.playerShip.object.parent.position.clone().add(dir.multiplyScalar(5))
+    // ]);
+
+    // // Force the ship to face the same direction
+    // gameState.playerObject.playerShip.object.parent.lookAt(gameState.playerObject.playerShip.object.parent.position.clone().add(dir));
+    //  }
+
+    // gameState.getGameHasStarted();
+    gameState.controls.enabled = gameState.getControlsEnabled();
     heightTerrain.groundMesh.rotation.y += 0.0001;
     heightTerrain.groundMesh.rotation.x += 0.0001;
     //==================================== checking is paused, responing with pause menu
@@ -788,11 +782,29 @@ gameState.selectAbleShips.forEach(ship => gameState.setShipGlow(ship, false))
       updateInventoryUI();
     }
     // }
-    secondShip.rotation.y += 0.02;
-    // thirdShip.rotation.y += 0.02;
+    secondShip.rotation.y += 0.0008;
+    // thirdShip.rotation.x += 0.02;
     // fourthShip.rotation.y += 0.02;
+    // fourthShip.rotation.x += 0.02;
 
     if (time - lastCheck > 100) {
+      gameState.selectAbleShips.forEach((ship) =>
+        gameState.setShipGlow(ship, false),
+      );
+      if (gameState?.selectedObject?.object?.uuid) {
+        if (
+          gameState?.selectedObject.object.uuid ===
+          gameState?.selectedObject.object.uuid
+        ) {
+          gameState.setShipGlow(gameState?.selectedObject.object.parent, true);
+          if (gameState.playerObject?.playerShip?.group?.position) {
+            gameState.playerObject.updateCharacterPos(gameState.selectedShip);
+          }
+
+          // gameState.addHalo(gameState.selectedObject.object)   this is highly non performant, creates 1000s of meshes
+        }
+      }
+
       // every 200ms
       gameState.checkParticleInteractions(gameState.playerObject.playerCamera);
       lastCheck = time;
@@ -810,7 +822,7 @@ gameState.selectAbleShips.forEach(ship => gameState.setShipGlow(ship, false))
       camera.rotation.x = 0;
       camera.rotation.z = 0;
       //reset local center state
-      center = false;
+      // center = false;
     }
 
     const delta = clock.getDelta();
@@ -839,30 +851,6 @@ gameState.selectAbleShips.forEach(ship => gameState.setShipGlow(ship, false))
 
     const deltaTime = time - lastTime;
     lastTime = time;
-
-    // Apply movement in the direction of the mouse for forward and opposite for backward
-    const forwardDirection = mouseDirection.clone().setY(0).normalize(); // Direction of the mouse for forward movement
-    const backwardDirection = forwardDirection.clone().negate(); // Opposite direction for backward movement
-
-    // operateMovement(
-    //   velocity,
-    //   moveSpeed,
-    //   deltaTime,
-    //   shipDirection,
-    //   backwardDirection,
-    //   forwardDirection,
-    // );
-
-    console.log(gameState.playerObject.moveSpeed);
-    //trying to move this into the player class, having no luck on the boost working with the movement
-    // operateMovement(
-    //   gameState.playerObject.velocity,
-    //   moveSpeed,
-    //   deltaTime,
-    //   shipDirection,
-    //   backwardDirection,
-    //   forwardDirection,
-    // );
 
     //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class
     gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
