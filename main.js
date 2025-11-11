@@ -797,12 +797,14 @@ if (WebGL.isWebGL2Available()) {
           gameState?.selectedObject.object.uuid
         ) {
           gameState.setShipGlow(gameState?.selectedObject.object.parent, true);
-          if (gameState.playerObject?.playerShip?.group?.position) {
-            gameState.playerObject.updateCharacterPos(gameState.selectedShip);
-          }
-
+          
           // gameState.addHalo(gameState.selectedObject.object)   this is highly non performant, creates 1000s of meshes
         }
+      }
+      if (gameState.playerObject?.playerShip?.group?.position) {
+        gameState.playerObject.updateCharacterPos(gameState.selectedShip);
+                  gameState.setShipGlow(gameState?.selectedShip.object.parent, false);
+
       }
 
       // every 200ms
