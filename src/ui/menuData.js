@@ -168,7 +168,7 @@ export default {
         element: "img",
         id: "hudUnarmed",
         textContent: "",
-        src: "/public/fist.png",
+        src: "/fist.png",
         parent: "hud",
         className: "hudControls",
       },
