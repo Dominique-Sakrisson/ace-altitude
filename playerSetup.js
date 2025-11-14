@@ -1,11 +1,14 @@
-import * as THREE from "three";
+import * as THREE from "three";import { BasicWeapon } from "./basicWeapon";
+import { TinyWeapon } from "./tinyWeapon";
+import { Unarmed } from "./unarmed";
 import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
 import * as dat from "lil-gui";
 
 export class PlayerSetup {
-  constructor(window, camera, socketId) {
-    this.id = socketId;
+  constructor(window, camera, socket) {
+    this.socket = socket;
+    this.id = this.socket.id;
     this.pointer = new THREE.Vector2();
     // this.raycaster = new THREE.Raycaster();
     this.window = window;
@@ -13,7 +16,7 @@ export class PlayerSetup {
     this.playerCamera = camera;
     this.playerCamera.raycaster = new THREE.Raycaster();
     this.activeBoost = false;
-    this.boostSpeed = 25;
+    this.boostSpeed = 0.5;
     this.boostDuration = 2.5;
     this.boostRestore = 10;
     this.playerCharacter = null;
@@ -31,6 +34,10 @@ export class PlayerSetup {
     };
     this.height = 100;
     this.size = 40;
+    this.weapon = new TinyWeapon() 
+    
+    this.weapon2 = new BasicWeapon();
+    this.currentWeapon = this.playerShip ? this.weapon : new Unarmed();
 
     // this.boost = new Boost({
     //   activeBoost: this.activeBoost,
@@ -38,8 +45,13 @@ export class PlayerSetup {
     //   boostDuration: this.boostDuration,
     //   boostRestore: this.boostRestore,
     // });
-    this.speed = 3;
+    this.speed = 1;
     this.currentSpeed = this.speed;
+    this.lastShot = 0;
+    this.attackSpeed = 100;
+    this.defaultClipSize = 15;
+    this.clipSize = 15;
+    this.reloadSpeed = 3000;
     // this.isSlowed = this.currentSpeed < this.speed;
     // this.angle = 0;
     // this.color = "blue";
@@ -58,7 +70,6 @@ export class PlayerSetup {
     this.moveRight = false;
     this.playerShip = {};
     this.velocity = new THREE.Vector3(0, 0, 0);
-   
 
     // this.character = gameState.selectedShip;
 
@@ -76,21 +87,84 @@ export class PlayerSetup {
     this.centerVision = false;
     // this.window.addEventListener('mousemove', this.onMouseMove);
   }
+  // reload() {
+  //   this.clipSize = this.defaultClipSize;
+  // }
+  // handleReload() {
+  //   this.setReloading(true);
+  //   setTimeout(() => {
+  //     this.setReloading(false);
+  //     this.reload();
+  //   }, this.reloadSpeed);
+  // }
+  // setLastShot(time) {
+  //   if (this.clipSize <= 1) {
+  //     this.clipSize--;
+  //     this.handleReload();
+  //     return;
+  //   }
+  //   this.lastShot = time;
+  //   this.clipSize--;
+  // }
+
+  // setReloading(toggle) {
+  //   if (typeof toggle !== "boolean") return;
+  //   this.reloading = toggle;
+  // }
+  // reload() {
+  //   this.clipSize = this.defaultClipSize;
+  // }
+  // shotCooldown(timeStamp) {
+  //   if (!this.lastShot) {
+  //     this.setLastShot(timeStamp);
+  //     return true;
+  //   } else if (timeStamp - this.lastShot <= this.attackSpeed) {
+  //     return false;
+  //   }
+  //   if (this.reloading) {
+  //     return false;
+  //   }
+
+  //   this.setLastShot(timeStamp);
+  //   return true;
+  // }
+  swapWeapon() {
+    console.log("hello");
+    console.log(this.currentWeapon, "current");
+    if (this.currentWeapon === this.weapon) {
+      console.log("weapon 1 should  swap to weapon 2");
+      this.currentWeapon = this.weapon2;
+      console.log(this.currentWeapon, "current");
+      // this.weapon.clipSize = 0;
+      return;
+    }
+    if (this.currentWeapon === this.weapon2) {
+      console.log("swapped off weapon2");
+      this.currentWeapon = this.weapon;
+      // this.weapon.clipSize = 0;
+      return;
+    }
+  }
   setPlayerShip(ship) {
     this.playerShip = {};
     this.playerShip = ship;
     this.playerCamera.add(this.playerShip.object.parent);
-    this.playerShip.object.parent.position.set(this.playerCamera.position);
-    this.playerShip.object.parent.position.set(0, -35, -40);
-    this.playerShip.object.parent.rotation.x += 3.35;
+    const { x, y, z } = this.playerCamera.getWorldPosition(new THREE.Vector3());
+
+    // this.playerShip.object.parent.position.set(0, -8, -13);
+    this.playerShip.object.parent.position.set(0, -55, -83);
+
+    this.playerShip.object.parent.rotation.x += 3.1;
     this.playerShip.object.parent.rotation.y = 0;
-    this.playerShip.object.parent.rotation.z = 0;
-   
+    this.playerShip.object.parent.rotation.z = 3.15;
+
     const group = new THREE.Group();
     group.add(this.playerCamera);
-  
-    this.playerShip.group = group;
 
+    this.playerShip.group = group;
+    this.currentWeapon = this.weapon;
+    
+    this.weapon.handleReload();
   }
 
   setLookSensitivity(amount) {
@@ -136,16 +210,6 @@ export class PlayerSetup {
     return this.moveRight;
   }
 
-  // movement(direction, moveOps) {
-  //   const options = new Map();
-  //   options.set("forward", (direction, speed) => {
-  //     this.playerCamera.position.addScaledVector(direction, speed);
-  //   });
-  //   options.set("backward");
-  //   options.set("left");
-  //   options.set("right");
-  //   options.get(direction)(moveOps.shipDirection, moveOps.moveSpeed);
-  // }
   updateCharacterPos(character) {
     character.position = this.playerCamera.position;
     character.rotation = this.playerCamera.rotation;
@@ -172,7 +236,20 @@ export class PlayerSetup {
           this.moveSpeed,
         );
       }
+
       this.handleMoveForwardWithShip(shipDirection, time);
+      console.log(this.playerShip, "local rotation");
+      if (this.playerShip.group && this.socket.id) {
+        this.socket.emit("player movement", {
+          id: this.socket.id,
+          position: this.playerShip.group.position,
+          rotation: {
+            x: this.playerShip.rotation.x,
+            y: this.playerShip.rotation.y,
+            z: this.playerShip.rotation.z,
+          },
+        });
+      }
     }
     if (this.getMoveBackward()) {
       if (!this.playerShip.position) {
@@ -182,29 +259,45 @@ export class PlayerSetup {
         );
       }
       this.handleMoveBackwardWithShip(shipDirection, time);
+      if (this.playerShip.group && this.socket.id) {
+        this.socket.emit("player movement", {
+          id: this.socket.id,
+          position: this.playerShip.group.position,
+          rotation: {
+            x: this.playerShip.rotation.x,
+            y: this.playerShip.rotation.y,
+            z: this.playerShip.rotation.z,
+          },
+        });
+      }
     }
 
     // Strafe movement using the this.playerCamera's right vector
     const right = new THREE.Vector3();
     right.crossVectors(this.playerCamera.up, shipDirection).normalize();
 
-    if (this.getMoveLeft()) {
-      if (!this.playerShip.position) {
-        this.playerCamera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
-      } else {
-        this.handleMoveLeftWithShip(shipDirection, time);
-      }
+    // if (this.getMoveLeft()) {
+    //   if (!this.playerShip.position) {
+    //     this.playerCamera.rotateZ(THREE.MathUtils.degToRad(time * 0.00003));
+    //   } else {
+    //     this.handleMoveLeftWithShip(shipDirection, time);
+    //   }
 
-      // this.playerCamera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
-    }
-    if (this.getMoveRight()) {
-      if (!this.playerShip.position) {
-        this.playerCamera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
-      } else {
-        this.handleMoveRightWithShip(shipDirection, time);
-      }
-      // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
-    }
+    //   // this.playerCamera.rotateOnAxis(new THREE.Vector3(0, 1, 0), time * 0.000003); // Left yaw
+    // }
+
+    // if (this.getMoveRight()) {
+    //   const clock = new THREE.Clock();
+    //     const delta = clock.getDelta();
+    //     const strafeSpeed = .01 * delta;
+    //   if (!this.playerShip.position) {
+    //     // this.playerCamera.rotateZ(THREE.MathUtils.degToRad(-time * 0.00003));
+    //      this.playerShip.position.addScaledVector(right, strafeSpeed);
+    //   } else {
+    //     this.handleMoveRightWithShip(shipDirection, time);
+    //   }
+    //   // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), -time * 0.000003); // Right yaw
+    // }
   }
 
   getPlayerPosition() {
@@ -308,31 +401,31 @@ export class PlayerSetup {
       );
     }
   }
-  handleMoveLeftWithShip(shipDirection, time) {
-    if (this.playerShip.position) {
-      // this.playerShip.object.parent.rotateZ(THREE.MathUtils.degToRad(time * 1));
-      this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(time * 0.0001));
-    }
-  }
-  handleMoveRightWithShip(shipDirection, time) {
-    if (this.playerShip.position) {
-      this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(-time * 0.0001));
-      // this.playerShip.object.parent.rotateZ(
-      //   THREE.MathUtils.degToRad(-time * 1),
-      // );
-    }
-  }
-
-  // positionShipTool() {
-  //   if (!this.playerShip || !this.playerShip.object) return;
-  //   this.gui
-  //     .add(this.playerShip.object.position, "x", -100, 100, 1)
-  //     .onChange((value) => {
-  //       this.playerShip.object.position.set(
-  //         value,
-  //         this.playerShip.object.position.y,
-  //         this.playerShip.object.position.z,
-  //       );
-  //     });
+  // handleMoveLeftWithShip(shipDirection, time) {
+  //   if (this.playerShip.position) {
+  //     // this.playerShip.object.parent.rotateZ(THREE.MathUtils.degToRad(time * 1));
+  //     this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(time * 0.0001));
+  //   }
   // }
+  // handleMoveRightWithShip(shipDirection, time) {
+  //   if (this.playerShip.position) {
+  //     this.playerShip.group.rotateZ(THREE.MathUtils.degToRad(-time * 0.0001));
+  //     // this.playerShip.object.parent.rotateZ(
+  //     //   THREE.MathUtils.degToRad(-time * 1),
+  //     // );
+  //   }
+  // }
+
+  positionShipTool() {
+    if (!this.playerShip || !this.playerShip.object) return;
+    this.gui
+      .add(this.playerShip.object.position, "x", -100, 100, 1)
+      .onChange((value) => {
+        this.playerShip.object.position.set(
+          value,
+          this.playerShip.object.position.y,
+          this.playerShip.object.position.z,
+        );
+      });
+  }
 }

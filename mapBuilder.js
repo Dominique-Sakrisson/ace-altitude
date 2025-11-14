@@ -69,9 +69,14 @@ export class MapBuilder {
     });
   }
   buildSkybox() {
-    const skyboxTexture = this.gameState.CTextureLoader.load(
-      Array(6).fill("sky.jpg"),
-    );
+    const skyboxTexture = this.gameState.CTextureLoader.load([
+      "./skybox_left.png",
+      "./skybox_right.png",
+      "./skybox_up.png",
+      "./skybox_down.png",
+      "./skybox_front.png",
+      "./skybox_back.png",
+    ]);
     return skyboxTexture;
   }
 

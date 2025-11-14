@@ -5,8 +5,11 @@ export function canvasSetup() {
     antialias: true,
     canvas,
     alpha: true,
+    
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+
   document.body.appendChild(renderer.domElement);
   return { canvas, renderer };
 }

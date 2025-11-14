@@ -1,4 +1,5 @@
-"use strict";import * as THREE from "three";
+"use strict";
+import * as THREE from "three";
 
 export function stationMaterialGen() {}
 
@@ -6,9 +7,7 @@ function generateLighting() {
   const lights = [];
   const color = 0xffffff;
   const intensity = 1;
-  // const directionalLight = new THREE.DirectionalLight(color, intensity);
-  // directionalLight.position.set(0, 100, 50).normalize();
-  // lights.push(directionalLight);
+ 
   return lights;
 }
 function generateCones() {
@@ -60,19 +59,8 @@ function generateCones() {
   const cone = new THREE.Mesh(coneGeo, [materialSide, materialBottom]);
   const cone2 = new THREE.Mesh(coneGeo2, [materialSide, materialBottom]);
 
-  //   const cone = new THREE.Mesh(coneGeo, material);
-  //   const cone2 = new THREE.Mesh(coneGeo2, material);
   cones.push(cone, cone2);
 
-  if (cones[0].position) {
-    cones[0].position.set(-1400, -600, -1500);
-    cones[0].rotateZ(110);
-  }
-
-  if (cones[1].position) {
-    cones[1].position.set(-1200, -575, -1500);
-    cones[1].rotateZ(110);
-  }
 
   return cones;
 }
@@ -86,12 +74,13 @@ export function stationGeometryGen() {
 export function stationMeshGen() {}
 
 export function initStation(position) {
-  const {x,y,z} = position;
+  const { x, y, z } = position;
   const group = new THREE.Group();
   const station = stationGeometryGen();
   //   const lights = generateLighting();
   station.forEach((obj) => group.add(obj));
   //   lights.forEach((obj) => group.add(obj));
-group.position.set(x,y,z)
+  group.position.set(x, y, z);
+  group.rotateX(Math.PI)
   return group;
 }

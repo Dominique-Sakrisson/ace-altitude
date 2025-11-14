@@ -11,15 +11,18 @@ import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { BloodParticleSystem } from "./src/bloodParticleSystem";
 import { GlobeParticleSystem } from "./src/globeParticleSystem";
 import menuData from "./src/ui/menuData";
+import { assembleBasicShip } from "./basicSpaceShip";
 import { MapBuilder } from "./mapBuilder";
 import { InventorySystem } from "./src/inventorySystem";
 import {
   morphObject,
   generateTerrain,
   createBullet,
+  createBulletFromData,
   createMaterial,
 } from "./objectHelper";
 import { TargetingSystem } from "./src/targetingSystem";
+import { Validator } from "./validator";
 
 //need to work in a level state to pass in
 export class GameState {
@@ -54,7 +57,7 @@ export class GameState {
     this.interact = false;
     this.interacting = false;
     this.showInteract = false;
-    this.playerObject = new PlayerSetup(window, camera, socket.id);
+    this.playerObject = new PlayerSetup(window, camera, this.socket);
     this.moveForward = false;
     this.moveBackward = false;
     this.moveLeft = false;
@@ -68,6 +71,7 @@ export class GameState {
     this.globeSystems = null;
     this.hits = new Map();
     this.pendingOptionsChanges = {};
+    this.eventValidator = new Validator();
     this.OBJLoader = new OBJLoader();
     this.GLTFLoader = new GLTFLoader();
     this.MTLLoader = new MTLLoader();
@@ -75,6 +79,9 @@ export class GameState {
     this.audioLoader = new THREE.AudioLoader();
     this.audioListener = new THREE.AudioListener();
     this.engineSound = new THREE.PositionalAudio(this.audioListener);
+    this.backgroundMusic = new THREE.PositionalAudio(this.audioListener);
+    this.shootBasicGun = new THREE.PositionalAudio(this.audioListener);
+    this.reloadSound = new THREE.PositionalAudio(this.audioListener);
     this.playerObject.playerCamera.add(this.audioListener);
     this.TextureLoader = new THREE.TextureLoader();
     this.CTextureLoader = new THREE.CubeTextureLoader();
@@ -95,32 +102,61 @@ export class GameState {
     this.bulletSpeed = 35;
     this.selectAbleShips = [];
     this.objectLoader = new THREE.ObjectLoader();
+    this.connectedPlayers = {};
     this.socket.on("join players", (players) => {
-      console.log(this.socket, "socket");
-      console.log("helooooo", typeof players);
-      // const group = this.OBJLoader.parse(players);
-      const group = this.objectLoader.parse(players);
-      // const group = new THREE.Group(players)
-      // Optionally set a position
-      if (players.position) {
-        const { x = 0, y = 0, z = 0 } = players.position;
-        group.position.set(x, y, z);
-      }
-      console.log(this.scene.children, "before the scene add");
-      this.scene.add(group);
-      console.log(this.scene.children, "after the scene add");
-      // if (players.length) {
-      //   players.map((player) => {
-      //     console.log(player, "one player");
-      //     const threeGroup = new THREE.Group(player.group);
-      //     console.log(this.scene);
-      //     threeGroup.position.set(new THREE.Vector3(player.group.position));
-      //     this.scene.add(new THREE.Group(player.group));
-      //     console.log(this.scene);
-      //   });
-      // }
+      const ship = assembleBasicShip(
+        players.id,
+        { x: players.position.x, y: players.position.y, z: players.position.z },
+        {
+          xRot: players.rotation._x,
+          yRot: players.rotation._y,
+          zRot: players.rotation._z,
+        },
+      );
+      this.connectedPlayers[players.id] = ship;
+      ship.rotateY(Math.PI);
+      this.scene.add(ship);
+    });
 
-      // });
+    this.socket.on("spawn bullet", (data) => {
+      const pos = {
+        cameraPos: new THREE.Vector3(
+          data.position.x,
+          data.position.y,
+          data.position.z,
+        ),
+        cameraDir: new THREE.Vector3(
+          data.direction.x,
+          data.direction.y,
+          data.direction.z,
+        ).normalize(),
+      };
+      if (data.sound === "shootBasicGun") {
+        const sound = new THREE.PositionalAudio(this.audioListener);
+        sound.setBuffer(this.shootBasicGun.buffer);
+        sound.setRefDistance(100);
+        sound.setVolume(0.15);
+        const bulletGroup = createBulletFromData(
+          this.scene,
+          this.activeShots,
+          pos,
+        );
+        bulletGroup.add(sound);
+        sound.play();
+      }
+    });
+    this.socket.on("player moved", (data) => {
+      const player = this.connectedPlayers[data.id];
+      console.log({ data }, "client side response");
+      if (!player) {
+        console.warn(`No player found for id ${data.id}`);
+        return;
+      }
+
+      // Now you can safely update that player’s position or whatever you need
+      player.position.set(data.position.x, data.position.y, data.position.z);
+      player.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+      player.rotateY(Math.PI);
     });
   }
   addSelectableShip(ship) {
@@ -130,24 +166,17 @@ export class GameState {
     const DEFAULT_ROLLSPEED = 24;
     const moveSpeed = Math.PI / DEFAULT_ROLLSPEED;
     this.controls.movementSpeed = moveSpeed;
-    //pass in negative amount to increase sensitivity
-
-    // this.playerObject.setLookSensitivity(DEFAULT_ROLLSPEED - 10);
-    // this.playerObject.setLookSensitivity( 0.05);
     this.controls.rollSpeed = this.playerObject.getLookSensitivity();
   }
   updateShots(time) {
-    // if (this.getControlsEnabled()) {
     this.activeShots.forEach((shot) => {
-      shot.position.add(
-        // console.log(shot.userData);
-
-        shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
-      );
+      (shot.owner = this.socket.id),
+        shot.position.add(
+          shot.userData.direction.clone().multiplyScalar(this.bulletSpeed),
+        );
       shot.rotation.z = time;
       shot.rotation.x = time * Math.random() * 0.000036;
     });
-    // }
   }
 
   itemMouseOver(e) {
@@ -188,6 +217,11 @@ export class GameState {
 
     // keep updating position while mouse moves
     li.onmousemove = (moveEvent) => {
+      if (
+        typeof moveEvent.clientX !== "number" ||
+        typeof moveEvent.clientY !== "number"
+      )
+        return;
       tooltip.style.left = moveEvent.clientX + 50 + "px";
       tooltip.style.top = moveEvent.clientY + "px";
     };
@@ -202,64 +236,211 @@ export class GameState {
     document.getElementById("reticle").style.display = "none";
   }
   reticleOn() {
-    document.getElementById("reticle").style.position = "absolute";
-    document.getElementById("reticle").style.display = "block";
+    const reticle = document.getElementById("reticle");
+    reticle.style.position = "absolute";
+    reticle.style.display = "block";
+
+    const elem = document.querySelector(".reticle");
+    const style = window.getComputedStyle(elem);
+    const offset = parseFloat(style.width) / 2;
+    console.log({ style });
+    console.log({ offset });
+
+    reticle.style.left = `${style.left + offset}`;
+  }
+  displayReload(toggle) {
+    // if (this.playerObject.currentWeapon.name === "unarmed") {
+    //   document.getElementById("hudUnarmed").style.display = "block";
+    //   return;
+    // } else {
+    //   document.getElementById("hudUnarmed").style.display = "none";
+    // }
+    if (toggle) {
+      document.getElementById("hudAmmoImg").style.display = "block";
+    } else {
+      document.getElementById("hudAmmoImg").style.display = "none";
+    }
+  }
+  resetReloadSound() {
+    console.log(this.playerObject.currentWeapon);
+    this.audioLoader.load(
+      this.playerObject.currentWeapon.shotSound,
+      (buffer) => {
+        this.shootBasicGun.setBuffer(buffer);
+        this.shootBasicGun.setVolume(0.15);
+      
+        this.shootBasicGun.setRefDistance(1000);
+        this.shootBasicGun.setLoop(false);
+      },
+    );
+    this.audioLoader.load(
+      this.playerObject.currentWeapon.reloadSound,
+      (buffer) => {
+        this.reloadSound.setBuffer(buffer);
+        this.reloadSound.setVolume(0.15);
+     
+        this.reloadSound.setRefDistance(1000);
+        this.reloadSound.setLoop(false);
+      },
+    );
+
+    console.log(this.reloadSound);
   }
   initKeyHandlers() {
-    this.canvas.addEventListener("click", () => {
+    this.canvas.addEventListener("click", (event) => {
+      // console.log(event);
+      console.log(this.playerObject.clipSize);
       if (this.playerObject.playerCamera.position.x === undefined) return;
-      // console.log(this.playerObject.playerShip.position, " ship position");
-      // console.log(this.playerObject.playerCamera.position, " camera position");
-      // console.log(this.playerObject.playerCamera.getWorldPosition(new THREE.Vector3()), " camera world");
       if (this.playerObject.playerShip.position) {
+        // if (!this.playerObject.shotCooldown(event.timeStamp)) {
+        if (!this.playerObject.currentWeapon.shotCooldown(event.timeStamp)) {
+          document.getElementById("hudAmmoImg").style.display = "block";
+          return;
+        } else {
+          document.getElementById("hudAmmoImg").style.display = "none";
+        }
+        this.updateAmmoCountHud();
+
+        if (this.shootBasicGun.isPlaying) this.shootBasicGun.stop();
+        this.shootBasicGun.play();
+
         const direction = new THREE.Vector3();
-        // console.log(
-        //   this.playerObject.playerShip.object.parent.position,
-        //   "ship position",
-        // );
-        // console.log(this.playerObject.playerCamera, "camera postiion");
-        // console.log(
-        //   this.playerObject.playerShip.group,
-        //   "group camera postiion",
-        // );
-        const pos = {
-          group: true,
-          activeGroup: this.playerObject.playerShip.group,
-          // cameraPos: this.playerObject.playerCamera,
-          cameraPos: this.playerObject.playerShip.group.children[0].position,
-          cameraDir:
-            this.playerObject.playerShip.object.parent.getWorldDirection(
-              direction,
-            ),
-          // cameraDir: this.playerObject.playerShip.object.getWorldDirection(direction),
-          // cameraPos: this.playerObject.playerCamera.position,
-          // cameraDir: this.playerObject.playerCamera.direction,
-          direction,
-        };
-        createBullet(
-          // this.playerObject.playerShip.position,
+        this.playerObject.playerShip.object.parent
+          .getWorldDirection(direction)
+          .normalize();
+
+        // Get the world position for the bullet spawn
+        const shotPos = new THREE.Vector3();
+        this.playerObject.playerShip.object.parent.getWorldPosition(shotPos);
+
+        // Now spawn the bullet locally
+        const projectileGroup = createBullet(
           this.playerObject.playerCamera,
           this.scene,
           this.activeShots,
-          pos,
+          {
+            cameraPos: shotPos,
+            cameraDir: direction,
+          },
         );
+        projectileGroup.add(this.shootBasicGun);
+        // updateAmmoCountHud();
+        if (this.playerObject.currentWeapon.clipSize === 0) {
+          // this.updateAmmoCountHud();
+          setTimeout(() => {
+            this.updateAmmoCountHud();
+            // }, this.playerObject.reloadSpeed);
+          }, this.playerObject.currentWeapon.reloadSpeed);
+        }
+        
+      if (this.targetingSystem.intersects.length) {
+        const colorAttr = this.selectedObject.object.geometry.attributes.color;
+        // const geometry = this.selectedObject.object.geometry;
+
+        //check if the object is within range of the weapon distance
+        if (this.geometry.isBufferGeometry) {
+          const interpolatedPoint = this.targetingSystem.determineHitMarker(
+            this.geometry,
+            this.baryCoords,
+          );
+
+          /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
+
+          const marker = this.establishHitMarker(interpolatedPoint);
+
+          if (marker.failure) return;
+
+          marker.position.copy(interpolatedPoint);
+
+          this.selectedObject.object.add(marker);
+
+          this.markers.push(marker);
+
+          if (this.markers.length > 10) {
+            this.markers.forEach((mark) => {
+              this.scene.remove(mark);
+              mark.geometry.dispose();
+              mark.material.dispose();
+            });
+          }
+
+          // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
+
+          if (this.targetingSystem.intersects.length > 0) {
+            const hit = this.selectedObject;
+            const configParticlesFromObject = {};
+            const blood = new BloodParticleSystem(
+              this.scene,
+              hit.point,
+              hit.face.normal,
+            );
+            if (this.gameHasStarted) {
+              const group = hit.object.parent;
+
+              // Increment count
+              const prev = this.hits.get(group) || 0;
+              const next = prev + 1;
+              this.hits.set(group, next);
+
+              //
+
+              // Check if it reached 10
+              if (next >= 5) {
+                //
+
+                // Optional: trigger something (bleeding effect, removal, etc.)
+                if (group.name === "earthSphere") {
+                  this.removeGroup(group);
+                  this.hits.delete(group);
+                }
+
+                // Optional: reset counter
+                // hitCounts.set(group, 0);
+              }
+
+              this.bloodSystems.push(blood);
+            }
+          }
+          //cleanup the markers that have been left on targets
+          setTimeout(() => {
+            if (this.selectedObject) {
+              this.selectedObject.object.remove(marker);
+            }
+            if (marker.parent === null) return;
+            marker.parent.remove(marker);
+            marker.geometry.dispose();
+            marker.material.dispose();
+          }, 200);
+        }
+      }
+        this.socket.emit("spawn bullet", {
+          owner: this.socket.id,
+          position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
+          direction: { x: direction.x, y: direction.y, z: direction.z },
+          sound: "shootBasicGun", // just a name or ID
+        });
       } else {
         const direction = new THREE.Vector3();
-        const pos = {
-          // cameraPos: this.playerObject.playerCamera.position,
-          cameraPos: this.playerObject.playerCamera,
-          // cameraDir: this.playerObject.playerCamera.direction,
-          cameraDir:
-            this.playerObject.playerCamera.getWorldDirection(direction),
-          direction,
-        };
+        document.getElementById("hudUnarmed").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("hudUnarmed").style.display = "none";
+        }, 2000);
+        // const pos = {
+        //   // cameraPos: this.playerObject.playerCamera.position,
+        //   cameraPos: this.playerObject.playerCamera,
+        //   // cameraDir: this.playerObject.playerCamera.direction,
+        //   cameraDir:
+        //     this.playerObject.playerCamera.getWorldDirection(direction),
+        //   direction,
+        // };
         // if (this.getControlsEnabled()) {
-        createBullet(
-          this.playerObject.playerCamera,
-          this.scene,
-          this.activeShots,
-          pos,
-        );
+        console.log(this.playerObject.playerCamera, "camera");
+        // const projectileGroup = createBullet(
+        //   this.playerObject.playerCamera,
+        //   this.scene,
+        //   this.activeShots,
+        //   pos,
+        // );
       }
     });
     this.canvas.addEventListener("mousedown", (event) => {
@@ -302,6 +483,18 @@ export class GameState {
         event.preventDefault();
         this.playerObject.setActiveBoost(false);
       }
+
+      if (event.code === "KeyF") {
+        event.preventDefault();
+        console.log(this.playerObject.currentWeapon, "before swap");
+
+        this.playerObject.swapWeapon();
+        // this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
+        this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
+        console.log(this.playerObject.currentWeapon, "after swap");
+        this.updateAmmoCountHud();
+        this.playerObject.currentWeapon.handleReload();
+      }
       if (event.code === "KeyV") {
         event.preventDefault();
         this.playerObject.setInteract(false);
@@ -310,6 +503,8 @@ export class GameState {
     // Resize the renderer and camera when the window is resized
     window.addEventListener("resize", () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
     });
@@ -452,25 +647,6 @@ export class GameState {
 
       this.globeSystems = globeSystem;
     }
-    // this.globeSystems.push(globeSystem);
-    //
-    // for (let i = 0; i < 20; i++) {
-    //   const heightTerrain = this.mapBuilder.buildGlobe(
-    //     100 + Math.random() * group.children[0].geometry.parameters.radius / 20,
-    //     1,
-    //     1,
-    //   );
-    //
-    //   heightTerrain.terrainGroup.position.x = (Math.random() - 0.5) * 3000;
-    //   (heightTerrain.terrainGroup.position.y =
-    //     heightTerrain.terrainGroup.position.y - Math.random() * 1600),
-    //     (heightTerrain.terrainGroup.position.z =
-    //       heightTerrain.terrainGroup.position.z - Math.random() * 1600),
-    //     heightTerrain.terrainGroup.remove(heightTerrain.baseSphere);
-    //
-    //   this.scene.add(heightTerrain.terrainGroup);
-    //   // group.add(heightTerrain);
-    // }
     // Dispose all children first
     group.traverse((child) => {
       if (child.geometry) child.geometry.dispose();
@@ -489,9 +665,13 @@ export class GameState {
     }
     // let globePieces = [];
   };
-
+  updateAmmoCountHud() {
+    document.getElementById("hudAmmo").innerHTML =
+      ` ${this.playerObject.currentWeapon.name} \n ${this.playerObject.currentWeapon.clipSize}   /   ${this.playerObject.currentWeapon.defaultClipSize}`;
+  }
   setupControls = () => {
     this.configureControls();
+
     this.canvas.addEventListener("mousemove", (event) => {
       const canvasWidth = this.canvas.clientWidth;
       const canvasHeight = this.canvas.clientHeight;
@@ -500,22 +680,25 @@ export class GameState {
       this.mouseY = -((event.clientY / canvasHeight) * 2 - 1); // Range from -1 to 1 (vertical)
     });
     this.window.addEventListener("mousemove", (event) => {
+      if (!this.eventValidator.mouseMoveEvent(event)) {
+        return;
+      }
       if (this.playerObject.playerShip.position) {
         const { raycaster } = this.playerObject.playerCamera;
-
         const targetPosition =
-          //  this.playerObject.playerCamera.position
           this.playerObject.playerCamera.raycaster.ray.direction.clone();
-        // .add(this.playerObject.playerCamera.raycaster.ray.direction);
 
-        // this.playerObject.playerShip.object.parent.lookAt(targetPosition);
-        // this.playerObject.playerShip.group.lookAt(targetPosition);
+        this.socket.emit("player movement", {
+          id: this.socket.id,
+          position: this.playerObject.playerShip.group.position,
+          rotation: {
+            x: this.playerObject.playerShip.rotation.x,
+            y: this.playerObject.playerShip.rotation.y,
+            z: this.playerObject.playerShip.rotation.z,
+          },
+        });
       }
       this.setSelectedObject(event);
-      // console.log(this.playerObject.playerShip);
-      //check that the selected object is of the ship options, then set that as the selected ship
-      // console.log(this.selectAbleShips);
-      // console.log(this.selectedObject);
       if (
         this.selectedObject &&
         this.selectAbleShips.length &&
@@ -539,92 +722,96 @@ export class GameState {
 
     this.window.addEventListener("click", (event) => {
       // this.setSelectedObject(event);
+      // console.log(event);
+      // if (!this.eventValidator.clickEvent(event)) return;
+      if (this.playerObject.currentWeapon.reloading) return;
+      if (!this.playerObject.currentWeapon.shotCooldown(event.timeStamp))
+        return;
 
       const { raycaster } = this.playerObject.playerCamera;
       // const mouse = new THREE.Vector2();
       const centerNDC = new THREE.Vector2(0, 0); // center of screen
 
-      if (this.targetingSystem.intersects.length) {
-        const colorAttr = this.selectedObject.object.geometry.attributes.color;
-        // const geometry = this.selectedObject.object.geometry;
+      // if (this.targetingSystem.intersects.length) {
+      //   const colorAttr = this.selectedObject.object.geometry.attributes.color;
+      //   // const geometry = this.selectedObject.object.geometry;
 
-        //check if the object is within range of the weapon distance
-        if (this.geometry.isBufferGeometry) {
-          const interpolatedPoint = this.targetingSystem.determineHitMarker(
-            this.geometry,
-            this.baryCoords,
-          );
+      //   //check if the object is within range of the weapon distance
+      //   if (this.geometry.isBufferGeometry) {
+      //     const interpolatedPoint = this.targetingSystem.determineHitMarker(
+      //       this.geometry,
+      //       this.baryCoords,
+      //     );
 
-          /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
+      //     /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
 
-          const marker = this.establishHitMarker(interpolatedPoint);
+      //     const marker = this.establishHitMarker(interpolatedPoint);
 
-          if (marker.failure) return;
+      //     if (marker.failure) return;
 
-          marker.position.copy(interpolatedPoint);
+      //     marker.position.copy(interpolatedPoint);
 
-          this.selectedObject.object.add(marker);
+      //     this.selectedObject.object.add(marker);
 
-          this.markers.push(marker);
+      //     this.markers.push(marker);
 
-          if (this.markers.length > 10) {
-            this.markers.forEach((mark) => {
-              this.scene.remove(mark);
-              mark.geometry.dispose();
-              mark.material.dispose();
-            });
-          }
+      //     if (this.markers.length > 10) {
+      //       this.markers.forEach((mark) => {
+      //         this.scene.remove(mark);
+      //         mark.geometry.dispose();
+      //         mark.material.dispose();
+      //       });
+      //     }
 
-          // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
+      //     // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
 
-          if (this.targetingSystem.intersects.length > 0) {
-            const hit = this.selectedObject;
-            const configParticlesFromObject = {};
-            const blood = new BloodParticleSystem(
-              this.scene,
-              hit.point,
-              hit.face.normal,
-            );
-            if (this.gameHasStarted) {
-              const group = hit.object.parent;
-              //
+      //     if (this.targetingSystem.intersects.length > 0) {
+      //       const hit = this.selectedObject;
+      //       const configParticlesFromObject = {};
+      //       const blood = new BloodParticleSystem(
+      //         this.scene,
+      //         hit.point,
+      //         hit.face.normal,
+      //       );
+      //       if (this.gameHasStarted) {
+      //         const group = hit.object.parent;
 
-              // Increment count
-              const prev = this.hits.get(group) || 0;
-              const next = prev + 1;
-              this.hits.set(group, next);
+      //         // Increment count
+      //         const prev = this.hits.get(group) || 0;
+      //         const next = prev + 1;
+      //         this.hits.set(group, next);
 
-              //
+      //         //
 
-              // Check if it reached 10
-              if (next >= 5) {
-                //
+      //         // Check if it reached 10
+      //         if (next >= 5) {
+      //           //
 
-                // Optional: trigger something (bleeding effect, removal, etc.)
-                if (group.name === "earthSphere") {
-                  this.removeGroup(group);
-                  this.hits.delete(group);
-                }
+      //           // Optional: trigger something (bleeding effect, removal, etc.)
+      //           if (group.name === "earthSphere") {
+      //             this.removeGroup(group);
+      //             this.hits.delete(group);
+      //           }
 
-                // Optional: reset counter
-                // hitCounts.set(group, 0);
-              }
+      //           // Optional: reset counter
+      //           // hitCounts.set(group, 0);
+      //         }
 
-              this.bloodSystems.push(blood);
-            }
-          }
-          //cleanup the markers that have been left on targets
-          setTimeout(() => {
-            if (this.selectedObject) {
-              this.selectedObject.object.remove(marker);
-            }
-            if (marker.parent === null) return;
-            marker.parent.remove(marker);
-            marker.geometry.dispose();
-            marker.material.dispose();
-          }, 200);
-        }
-      }
+      //         this.bloodSystems.push(blood);
+      //       }
+      //     }
+      //     //cleanup the markers that have been left on targets
+      //     setTimeout(() => {
+      //       if (this.selectedObject) {
+      //         this.selectedObject.object.remove(marker);
+      //       }
+      //       if (marker.parent === null) return;
+      //       marker.parent.remove(marker);
+      //       marker.geometry.dispose();
+      //       marker.material.dispose();
+      //     }, 200);
+      //   }
+      // }
     });
     this.window.addEventListener("keydown", (event) => {
       const active = document.activeElement;
@@ -668,6 +855,11 @@ export class GameState {
       if (event.code === "KeyD") {
         event.preventDefault();
         this.playerObject.setMoveRight(true);
+      }
+      if (event.code === "KeyR") {
+        event.preventDefault();
+        // this.playerObject.handleReload();
+        this.playerObject.currentWeapon.handleReload();
       }
       if (event.code === "KeyV") {
         event.preventDefault();
@@ -732,34 +924,6 @@ export class GameState {
       }
     });
   };
-  // getMoveForward() {
-  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-  //   return this.moveForward;
-  // }
-
-  // getMoveBackward() {
-  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-  //   return this.moveBackward;
-  // }
-
-  // getMoveLeft() {
-  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-  //   return this.moveLeft;
-  // }
-  // setMoveLeft(toggle) {
-  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-  //   this.moveLeft = toggle;
-  // }
-  // getMoveRight() {
-  //   if (this.getIsPaused() || !this.getGameHasStarted()) return false;
-  //   return this.moveRight;
-  // }
-  // getLookSensitivity() {
-  //   return this.lookSensitivity;
-  // }
-  // setLookSensitivity(number) {
-  //   this.lookSensitivity = number;
-  // }
   setBoost(toggle) {
     this.boost = toggle;
   }
@@ -869,9 +1033,20 @@ export class GameState {
   confirmSelectedShip() {
     // console.log(this.selectedShip);
     this.playerObject.setPlayerShip(this.selectedShip);
+    this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
+    this.reloadSound.stop()
+    this.reloadSound.play();
     this.selectAbleShips = [];
     this.scene.add(this.playerObject.playerShip.group);
-    this.socket.emit("new player", this.playerObject.playerShip.group.toJSON());
+    const body = {
+      id: this.socket.id,
+      rotation: this.playerObject.playerCamera.rotation,
+      quaternion: this.playerObject.playerCamera.quaternion,
+      position: this.playerObject.playerCamera.position,
+    };
+    // this.socket.emit("new player", this.playerObject);
+    this.socket.emit("new player", body);
+    // this.socket.emit("new player", this.playerObject.playerShip.group.toJSON());
   }
   setShipGlow(shipGroup, glowing) {
     if (!shipGroup) return;

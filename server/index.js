@@ -1,5 +1,4 @@
-import express from "express";
-import { createServer } from "node:http";
+import express from "express";import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { Server } from "socket.io";
@@ -15,7 +14,7 @@ const publicPath = join(__dirname, "..");
 const viteBuildPath = join(__dirname, "../dist");
 const viteFallbackPath = join(__dirname, "../dist/index.html");
 
-const players= []
+const players = [];
 // app.use(express.static(publicPath));
 
 // // Serve the built Vite frontend
@@ -36,18 +35,20 @@ app.use(express.static(join(__dirname, "../dist")));
 io.on("connection", (socket) => {
   console.log("a user has connected");
   socket.on("disconnect", (payload) => {
-    console.log({payload});
-    // players.filter((item) => {
-    //   payload.id === item.id;
-    // })
-    // console.log("user disconnected, current players:", players);
+    console.log({ payload });
   });
-   socket.on('new player', (player) => {
+  socket.on("new player", (player) => {
     console.log("woooo", player);
     socket.broadcast.emit("join players", player);
-    // players.push(player);
-    // console.log('message: ', player);
-    // io.emit("join players", players )
+  });
+  socket.on("spawn bullet", (shot) => {
+    console.log({ shot });
+    socket.broadcast.emit("spawn bullet", shot);
+  });
+
+  socket.on("player movement", (data) => {
+    console.log({ data });
+    socket.broadcast.emit("player moved", data);
   });
 });
 

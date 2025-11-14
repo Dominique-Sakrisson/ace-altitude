@@ -1,4 +1,5 @@
-import { MenuActions } from "./menuActions";export default {
+import { MenuActions } from "./menuActions";
+export default {
   main: {
     title: "Main Menu",
     nodes: [
@@ -138,6 +139,44 @@ import { MenuActions } from "./menuActions";export default {
         element: "div",
         id: "hudDist",
         textContent: "Distance: ",
+        parent: "hud",
+        className: "hudControls",
+      },
+      {
+        element: "div",
+        id: "hudAmmo",
+        textContent: "",
+        parent: "hud",
+        className: "hudControls",
+      },
+      {
+        element: "div",
+        id: "hudAmmoRound",
+        textContent: "",
+        parent: "hud",
+        className: "hudControls",
+      },
+      {
+        element: "img",
+        id: "hudAmmoImg",
+        textContent: "",
+        src: "/ammo-icon-8.jpg",
+        parent: "hud",
+        className: "hudControls",
+      },
+      {
+        element: "img",
+        id: "hudUnarmed",
+        textContent: "",
+        src: "/public/fist.png",
+        parent: "hud",
+        className: "hudControls",
+      },
+      {
+        element: "img",
+        id: "hudUnarmed",
+        textContent: "",
+        src: "/public/fist.png",
         parent: "hud",
         className: "hudControls",
       },

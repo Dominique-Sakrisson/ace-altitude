@@ -1,4 +1,5 @@
-"use strict";import * as THREE from "three";
+"use strict";
+import * as THREE from "three";
 import "./style.css";
 
 const shipLoader = new THREE.TextureLoader();
@@ -86,21 +87,26 @@ export function updateGradient() {
   }
 }
 
-export function assembleBasicShip(name, spawnPosition = { x: 0, y: 0, z: 0 }) {
-  const {x,y,z} = spawnPosition;
+export function assembleBasicShip(
+  name,
+  spawnPosition = { x: 0, y: 0, z: 0 },
+  spawnRotation = { xRot: 0, yRot: 0, zRot: 0 },
+) {
+  const { x, y, z } = spawnPosition;
+  const { xRot, yRot, zRot } = spawnRotation;
   const spaceShipGroup = new THREE.Group();
   spaceShipGroup.name = name;
   spaceShipGroup.castShadow = true;
   spaceShipGroup.receiveShadow = true;
   spaceShipGroup.markerConfig = {
-        materialConfig: {
-          type: "metalic",
-          color: "#afd81dff",
-          specular: "#d49919ff",
-          shininess: 100,
-          emissive: "#d49919ff",
-        },
-      };
+    materialConfig: {
+      type: "metalic",
+      color: "#afd81dff",
+      specular: "#d49919ff",
+      shininess: 100,
+      emissive: "#d49919ff",
+    },
+  };
 
   // const ground = makeBoxInstance(boxGeometry, "#964B00", 0, 0);
   const engineChamber = new THREE.Mesh(boxGeometry, material.clone());
@@ -139,7 +145,7 @@ export function assembleBasicShip(name, spawnPosition = { x: 0, y: 0, z: 0 }) {
   engineChamber2.position.set(10, 10, 0);
   engineThrust2.scale.set(1.45, 1, 1.4);
   engineThrust2.position.set(10, 10.05, -8.5);
-  engineThrust2.rotation.x = -1.55;
+  engineThrust2.rotation.x -= 1.55;
 
   engineMount.scale.set(5, 2, 9);
   engineMount.position.set(0, 10, 10);
@@ -183,7 +189,11 @@ export function assembleBasicShip(name, spawnPosition = { x: 0, y: 0, z: 0 }) {
     mesh.updateMatrix();
   });
 
-  spaceShipGroup.position.set(x,y,z)
+  spaceShipGroup.position.set(x, y, z);
+  if (spawnRotation) {
+    spaceShipGroup.rotation.set(xRot, yRot, zRot);
+  }
+
   return spaceShipGroup;
 }
 

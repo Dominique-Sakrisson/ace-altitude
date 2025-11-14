@@ -24,14 +24,26 @@ export class Menu {
     title.textContent = this.title;
 
     const menuOptions = this.nodes.map((node) => {
-      const element = document.createElement(node.element);
-
+      let element;
+      if (node.src) {
+        element = document.createElement(node.element);
+        element.id = node?.id;
+        element.type = node?.type;
+        element.className = node?.className;
+        element.src = node.src;
+        element.style.width = "50px";
+        element.style.height = "50px";
+        document.getElementById(node.parent).appendChild(element);
+        return;
+      }
+      element = document.createElement(node.element);
       element.id = node?.id;
       element.type = node?.type;
       element.className = node?.className;
       if (!element.className) {
         element.className = "";
       }
+
       element.textContent = node?.textContent;
       element.placeholder = node?.placeholder;
       element.value = node?.value;
@@ -53,8 +65,10 @@ export class Menu {
         // }
       }
       if (node.parent === "hud") {
-        element.style.pointerEvents = "none";
-        element.style.userSelect = "none";
+        if(node.id !== "instructor" || node.parent =="instructor"){
+          element.style.pointerEvents = "none";
+          element.style.userSelect = "none";
+        }
       }
       if (node.element === "input") {
         element.style.cursor = "text";
