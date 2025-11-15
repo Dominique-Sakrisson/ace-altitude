@@ -832,9 +832,9 @@ gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
 
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
-      if(!gameState.reloadSound.isPlaying){
+      // if(!gameState.reloadSound.isPlaying){
         gameState.displayReload(true);
-      }
+      // }
     } else {
       gameState.reloadSound.stop();
       gameState.displayReload(false);

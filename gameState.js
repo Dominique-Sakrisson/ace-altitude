@@ -1,5 +1,4 @@
-import * as THREE from "three";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import * as THREE from "three";import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PlayerSetup } from "./playerSetup";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
@@ -283,11 +282,10 @@ export class GameState {
         this.reloadSound.setRefDistance(1000);
         this.reloadSound.setLoop(false);
         //this stop & play pattern solved issue of inteded short reloads playing the wrong long reload if called after a long reload hadnt finished
-        this.reloadSound.stop()
-        this.reloadSound.play()
+        this.reloadSound.stop();
+        this.reloadSound.play();
       },
     );
-
   }
   initKeyHandlers() {
     this.canvas.addEventListener("click", (event) => {
@@ -296,9 +294,16 @@ export class GameState {
       if (this.playerObject.playerCamera.position.x === undefined) return;
       if (this.playerObject.playerShip.position) {
         // if (!this.playerObject.shotCooldown(event.timeStamp)) {
-        // if(this.playerObject.weapon.reloading) return;
+        if (this.playerObject.currentWeapon.reloading) {
+          // this.reloadSound.stop();
+          if(!this.reloadSound.isPlaying){
+            this.reloadSound.play();
+          }
+          return;
+        }
         if (!this.playerObject.currentWeapon.shotCooldown(event.timeStamp)) {
           document.getElementById("hudAmmoImg").style.display = "block";
+
           return;
         } else {
           document.getElementById("hudAmmoImg").style.display = "none";
@@ -430,22 +435,6 @@ export class GameState {
         setTimeout(() => {
           document.getElementById("hudUnarmed").style.display = "none";
         }, 2000);
-        // const pos = {
-        //   // cameraPos: this.playerObject.playerCamera.position,
-        //   cameraPos: this.playerObject.playerCamera,
-        //   // cameraDir: this.playerObject.playerCamera.direction,
-        //   cameraDir:
-        //     this.playerObject.playerCamera.getWorldDirection(direction),
-        //   direction,
-        // };
-        // if (this.getControlsEnabled()) {
-        console.log(this.playerObject.playerCamera, "camera");
-        // const projectileGroup = createBullet(
-        //   this.playerObject.playerCamera,
-        //   this.scene,
-        //   this.activeShots,
-        //   pos,
-        // );
       }
     });
     this.canvas.addEventListener("mousedown", (event) => {
@@ -501,8 +490,8 @@ export class GameState {
         // this.reloadSound.play();
         console.log(this.playerObject.currentWeapon, "after swap");
         this.updateAmmoCountHud();
-        this.reloadSound.stop()
-        this.reloadSound.play()
+        this.reloadSound.stop();
+        this.reloadSound.play();
         this.playerObject.currentWeapon.handleReload();
       }
       if (event.code === "KeyV") {
@@ -868,8 +857,8 @@ export class GameState {
       }
       if (event.code === "KeyR") {
         event.preventDefault();
-        this.reloadSound.stop()
-        this.reloadSound.play()
+        this.reloadSound.stop();
+        this.reloadSound.play();
         this.playerObject.currentWeapon.handleReload();
       }
       if (event.code === "KeyV") {
