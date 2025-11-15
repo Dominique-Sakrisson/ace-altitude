@@ -1,4 +1,5 @@
-"use strict";import * as THREE from "three";
+"use strict";
+import * as THREE from "three";
 import "./style.css";
 import WebGL from "three/addons/capabilities/WebGL.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
@@ -34,9 +35,9 @@ if (WebGL.isWebGL2Available()) {
   const far = 6000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-  camera.position.x =0;
-  camera.position.y = -850
-  camera.position.z = 500
+  camera.position.x = 0;
+  camera.position.y = -850;
+  camera.position.z = 500;
   const scene = new THREE.Scene();
 
   //make an initGameState() with all the options to set player controls, scene camera matrix, difficulty and level select etc
@@ -101,7 +102,9 @@ if (WebGL.isWebGL2Available()) {
     },
   );
   gameState.audioLoader.load(
-    gameState.playerObject.currentWeapon.reloadSound ? gameState.playerObject.currentWeapon.reloadSound : gameState.playerObject.weapon.reloadSound ,
+    gameState.playerObject.currentWeapon.reloadSound
+      ? gameState.playerObject.currentWeapon.reloadSound
+      : gameState.playerObject.weapon.reloadSound,
     (buffer) => {
       gameState.reloadSound.setBuffer(buffer);
       gameState.reloadSound.setVolume(0.15);
@@ -143,17 +146,22 @@ if (WebGL.isWebGL2Available()) {
     y: -950,
     z: -150,
   });
+  secondShip.rotation.x = 100;
   const thirdShip = assembleBasicShip("target ship", {
     x: -150,
     y: -950,
     z: 100,
   });
-
+  thirdShip.rotation.x = -100;
+  thirdShip.rotation.y = 100;
+  
   const fourthShip = assembleBasicShip("target ship", {
     x: 150,
     y: -950,
     z: 100,
   });
+  fourthShip.rotation.x = -100;
+  fourthShip.rotation.y = -100;
 
   gameState.addSelectableShip(secondShip);
   gameState.addSelectableShip(thirdShip);
@@ -301,13 +309,13 @@ if (WebGL.isWebGL2Available()) {
     ),
   );
   topDownShipDisplay.target = secondShip;
-  // bottomLeftShipDisplay.addBasicLight(
-  //   new THREE.Vector3(
-  //     secondShip.position.x,
-  //     secondShip.position.y - 1000,
-  //     secondShip.position.z + 150,
-  //   ),
-  // );
+  bottomLeftShipDisplay.addBasicLight(
+    new THREE.Vector3(
+      secondShip.position.x,
+      secondShip.position.y - 800,
+      secondShip.position.z + 200,
+    ),
+  );
   // bottomLeftShipDisplay.target = secondShip;
   // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
 
@@ -336,6 +344,16 @@ if (WebGL.isWebGL2Available()) {
   const missileObjects = []; // Array to store missile instances
 
   // Load the material (.mtl) file first
+gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
+  console.log(file.scene);
+  const {scene: head} = file
+  head.scale.set(250, 250, 250); // double
+  head.position.y = -900;
+  head.position.x = 300;
+  head.position.z = 50;
+
+  scene.add(file.scene)
+});
 
   gameState.MTLLoader.load(
     "./models/missile/AIM120D.mtl",
@@ -814,8 +832,9 @@ if (WebGL.isWebGL2Available()) {
 
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
-      gameState.reloadSound.play();
-      gameState.displayReload(true);
+      if(!gameState.reloadSound.isPlaying){
+        gameState.displayReload(true);
+      }
     } else {
       gameState.reloadSound.stop();
       gameState.displayReload(false);
