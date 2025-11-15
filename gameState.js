@@ -1,4 +1,5 @@
-import * as THREE from "three";import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PlayerSetup } from "./playerSetup";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
@@ -262,29 +263,31 @@ export class GameState {
     }
   }
   resetReloadSound() {
-    console.log(this.playerObject.currentWeapon);
+    //load audio for the weapon shot
     this.audioLoader.load(
       this.playerObject.currentWeapon.shotSound,
       (buffer) => {
         this.shootBasicGun.setBuffer(buffer);
         this.shootBasicGun.setVolume(0.15);
-      
+
         this.shootBasicGun.setRefDistance(1000);
         this.shootBasicGun.setLoop(false);
       },
     );
+
     this.audioLoader.load(
       this.playerObject.currentWeapon.reloadSound,
       (buffer) => {
         this.reloadSound.setBuffer(buffer);
         this.reloadSound.setVolume(0.15);
-     
         this.reloadSound.setRefDistance(1000);
         this.reloadSound.setLoop(false);
+        //this stop & play pattern solved issue of inteded short reloads playing the wrong long reload if called after a long reload hadnt finished
+        this.reloadSound.stop()
+        this.reloadSound.play()
       },
     );
 
-    console.log(this.reloadSound);
   }
   initKeyHandlers() {
     this.canvas.addEventListener("click", (event) => {
@@ -293,6 +296,7 @@ export class GameState {
       if (this.playerObject.playerCamera.position.x === undefined) return;
       if (this.playerObject.playerShip.position) {
         // if (!this.playerObject.shotCooldown(event.timeStamp)) {
+        // if(this.playerObject.weapon.reloading) return;
         if (!this.playerObject.currentWeapon.shotCooldown(event.timeStamp)) {
           document.getElementById("hudAmmoImg").style.display = "block";
           return;
@@ -332,87 +336,88 @@ export class GameState {
             // }, this.playerObject.reloadSpeed);
           }, this.playerObject.currentWeapon.reloadSpeed);
         }
-        
-      if (this.targetingSystem.intersects.length) {
-        const colorAttr = this.selectedObject.object.geometry.attributes.color;
-        // const geometry = this.selectedObject.object.geometry;
 
-        //check if the object is within range of the weapon distance
-        if (this.geometry.isBufferGeometry) {
-          const interpolatedPoint = this.targetingSystem.determineHitMarker(
-            this.geometry,
-            this.baryCoords,
-          );
+        if (this.targetingSystem.intersects.length) {
+          const colorAttr =
+            this.selectedObject.object.geometry.attributes.color;
+          // const geometry = this.selectedObject.object.geometry;
 
-          /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
-
-          const marker = this.establishHitMarker(interpolatedPoint);
-
-          if (marker.failure) return;
-
-          marker.position.copy(interpolatedPoint);
-
-          this.selectedObject.object.add(marker);
-
-          this.markers.push(marker);
-
-          if (this.markers.length > 10) {
-            this.markers.forEach((mark) => {
-              this.scene.remove(mark);
-              mark.geometry.dispose();
-              mark.material.dispose();
-            });
-          }
-
-          // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
-
-          if (this.targetingSystem.intersects.length > 0) {
-            const hit = this.selectedObject;
-            const configParticlesFromObject = {};
-            const blood = new BloodParticleSystem(
-              this.scene,
-              hit.point,
-              hit.face.normal,
+          //check if the object is within range of the weapon distance
+          if (this.geometry.isBufferGeometry) {
+            const interpolatedPoint = this.targetingSystem.determineHitMarker(
+              this.geometry,
+              this.baryCoords,
             );
-            if (this.gameHasStarted) {
-              const group = hit.object.parent;
 
-              // Increment count
-              const prev = this.hits.get(group) || 0;
-              const next = prev + 1;
-              this.hits.set(group, next);
+            /*During this point is where logic should be to read properties of the object were interacting with, apply differnt types of markers based on material of objects being metal,stone,flesh, for now its red the default for flesh, likely this will be a property on the parent group of the object hit, children objects my one day get their own material so as to check first there and if null or falsey apply the material for the parent group*/
 
-              //
+            const marker = this.establishHitMarker(interpolatedPoint);
 
-              // Check if it reached 10
-              if (next >= 5) {
+            if (marker.failure) return;
+
+            marker.position.copy(interpolatedPoint);
+
+            this.selectedObject.object.add(marker);
+
+            this.markers.push(marker);
+
+            if (this.markers.length > 10) {
+              this.markers.forEach((mark) => {
+                this.scene.remove(mark);
+                mark.geometry.dispose();
+                mark.material.dispose();
+              });
+            }
+
+            // When you click: check what object is hit, do the checking for how many hitsm, make the change at 5 hits
+
+            if (this.targetingSystem.intersects.length > 0) {
+              const hit = this.selectedObject;
+              const configParticlesFromObject = {};
+              const blood = new BloodParticleSystem(
+                this.scene,
+                hit.point,
+                hit.face.normal,
+              );
+              if (this.gameHasStarted) {
+                const group = hit.object.parent;
+
+                // Increment count
+                const prev = this.hits.get(group) || 0;
+                const next = prev + 1;
+                this.hits.set(group, next);
+
                 //
 
-                // Optional: trigger something (bleeding effect, removal, etc.)
-                if (group.name === "earthSphere") {
-                  this.removeGroup(group);
-                  this.hits.delete(group);
+                // Check if it reached 10
+                if (next >= 5) {
+                  //
+
+                  // Optional: trigger something (bleeding effect, removal, etc.)
+                  if (group.name === "earthSphere") {
+                    this.removeGroup(group);
+                    this.hits.delete(group);
+                  }
+
+                  // Optional: reset counter
+                  // hitCounts.set(group, 0);
                 }
 
-                // Optional: reset counter
-                // hitCounts.set(group, 0);
+                this.bloodSystems.push(blood);
               }
-
-              this.bloodSystems.push(blood);
             }
+            //cleanup the markers that have been left on targets
+            setTimeout(() => {
+              if (this.selectedObject) {
+                this.selectedObject.object.remove(marker);
+              }
+              if (marker.parent === null) return;
+              marker.parent.remove(marker);
+              marker.geometry.dispose();
+              marker.material.dispose();
+            }, 200);
           }
-          //cleanup the markers that have been left on targets
-          setTimeout(() => {
-            if (this.selectedObject) {
-              this.selectedObject.object.remove(marker);
-            }
-            if (marker.parent === null) return;
-            marker.parent.remove(marker);
-            marker.geometry.dispose();
-            marker.material.dispose();
-          }, 200);
         }
-      }
         this.socket.emit("spawn bullet", {
           owner: this.socket.id,
           position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
@@ -486,13 +491,18 @@ export class GameState {
 
       if (event.code === "KeyF") {
         event.preventDefault();
-        console.log(this.playerObject.currentWeapon, "before swap");
+        console.log(this.playerObject.currentWeapon.reloadSound, "before swap");
+        console.log(this.reloadSound);
 
+        this.reloadSound.stop();
         this.playerObject.swapWeapon();
         // this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
         this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
+        // this.reloadSound.play();
         console.log(this.playerObject.currentWeapon, "after swap");
         this.updateAmmoCountHud();
+        this.reloadSound.stop()
+        this.reloadSound.play()
         this.playerObject.currentWeapon.handleReload();
       }
       if (event.code === "KeyV") {
@@ -858,7 +868,8 @@ export class GameState {
       }
       if (event.code === "KeyR") {
         event.preventDefault();
-        // this.playerObject.handleReload();
+        this.reloadSound.stop()
+        this.reloadSound.play()
         this.playerObject.currentWeapon.handleReload();
       }
       if (event.code === "KeyV") {
@@ -1033,9 +1044,10 @@ export class GameState {
   confirmSelectedShip() {
     // console.log(this.selectedShip);
     this.playerObject.setPlayerShip(this.selectedShip);
+    this.reloadSound.stop();
     this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
-    this.reloadSound.stop()
-    this.reloadSound.play();
+    this.reloadSound.stop();
+    // this.reloadSound.play();
     this.selectAbleShips = [];
     this.scene.add(this.playerObject.playerShip.group);
     const body = {

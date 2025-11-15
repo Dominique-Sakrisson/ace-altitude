@@ -1,6 +1,6 @@
-import * as THREE from "three";import { BasicWeapon } from "./basicWeapon";
-import { TinyWeapon } from "./tinyWeapon";
-import { Unarmed } from "./unarmed";
+import * as THREE from "three";import { BasicWeapon } from "./src/weapons/basicWeapon";
+import { TinyWeapon } from "./src/weapons/tinyWeapon";
+import { Unarmed } from "./src/weapons/unarmed";
 import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
 import * as dat from "lil-gui";
@@ -34,8 +34,8 @@ export class PlayerSetup {
     };
     this.height = 100;
     this.size = 40;
-    this.weapon = new TinyWeapon() 
-    
+    this.weapon = new TinyWeapon();
+
     this.weapon2 = new BasicWeapon();
     this.currentWeapon = this.playerShip ? this.weapon : new Unarmed();
 
@@ -132,26 +132,29 @@ export class PlayerSetup {
     console.log("hello");
     console.log(this.currentWeapon, "current");
     if (this.currentWeapon === this.weapon) {
-      console.log("weapon 1 should  swap to weapon 2");
       this.currentWeapon = this.weapon2;
-      console.log(this.currentWeapon, "current");
-      // this.weapon.clipSize = 0;
       return;
     }
     if (this.currentWeapon === this.weapon2) {
-      console.log("swapped off weapon2");
       this.currentWeapon = this.weapon;
-      // this.weapon.clipSize = 0;
       return;
     }
   }
+  orientNewShip(ship) {
+    ship.object.parent.rotation.x = 0;
+    ship.object.parent.rotation.y = 0;
+    ship.object.parent.rotation.z = 0;
+    return ship;
+  }
   setPlayerShip(ship) {
     this.playerShip = {};
-    this.playerShip = ship;
+    console.log(ship);
+    let newShip = this.orientNewShip(ship);
+    this.playerShip = newShip;
     this.playerCamera.add(this.playerShip.object.parent);
     const { x, y, z } = this.playerCamera.getWorldPosition(new THREE.Vector3());
 
-    // this.playerShip.object.parent.position.set(0, -8, -13);
+    // this.playerShip.object.parent.position.set(0, -8, -13); // position for unscaled
     this.playerShip.object.parent.position.set(0, -55, -83);
 
     this.playerShip.object.parent.rotation.x += 3.1;
@@ -163,7 +166,7 @@ export class PlayerSetup {
 
     this.playerShip.group = group;
     this.currentWeapon = this.weapon;
-    
+
     this.weapon.handleReload();
   }
 

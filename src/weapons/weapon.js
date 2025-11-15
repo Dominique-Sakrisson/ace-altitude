@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 export class Weapon {
   constructor(attackSpeed, clipSize, reloadSpeed, shotSound, reloadSound, name) {
     this.attackSpeed = attackSpeed; //time in MS between attacks
@@ -38,13 +40,13 @@ export class Weapon {
     this.clipSize = this.defaultClipSize;
   }
   shotCooldown(timeStamp) {
+    if (this.reloading) {
+      return false;
+    }
     if (!this.lastShot) {
       this.setLastShot(timeStamp);
       return true;
     } else if (timeStamp - this.lastShot <= this.attackSpeed) {
-      return false;
-    }
-    if (this.reloading) {
       return false;
     }
 
