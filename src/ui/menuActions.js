@@ -9,6 +9,10 @@ export class MenuActions {
     gameState.setIsPaused(false);
     gameState.setEnableControls();
   }
+  static leaveTitle(gameState){
+    gameState.setUserTitleMenu(false);
+    document.getElementById("titleMenu").style.display = "none";
+  }
   static resumeGame(gameState) {
     gameState.setIsPaused(false);
   }

@@ -1,5 +1,31 @@
-import { MenuActions } from "./menuActions";
-export default {
+import { MenuActions } from "./menuActions";export default {
+  titleMenu: {
+    title: "Ace Altitude",
+    nodes: [
+      {
+        element: "div",
+        id: "titleBanner",
+        parent: "titleMenu",
+        textContent: "Ace Altitude"
+      },
+      {
+        element: "div",
+        id: "titleContent",
+        parent: "titleMenu",
+        textContent: "Play Now",
+        onClick: MenuActions.leaveTitle,
+      },
+
+      {
+        id: "titleVideo",
+        element: "video",
+        src: "../../public/sounds,reload.mp4",
+        parent: "titleMenu",
+        autoplay: true,
+        muted: true,
+      },
+    ],
+  },
   main: {
     title: "Main Menu",
     nodes: [

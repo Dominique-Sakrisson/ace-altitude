@@ -52,7 +52,11 @@ if (WebGL.isWebGL2Available()) {
 
   //
   const gameState = new GameState({ ...gameConfig });
-
+  //arguments to toggle menu are the element to show, and the case in which the menu would be shown
+    toggleMenu(
+      document.getElementById("titleMenu"),
+      gameState.getUserTitleMenu(),
+    );
   const mapBuilder = new MapBuilder(gameState);
 
   const inventoryElement = document.getElementById("inventory");
@@ -180,6 +184,7 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
+  
   const gui = initGui(toggles);
 
   gui.addFolder("player Controls");
@@ -603,10 +608,9 @@ gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
     } else {
       showInventory();
     }
-    //arguments to toggle menu are the element to show, and the case in which the menu would be shown
     toggleMenu(
       document.getElementById("mainMenu"),
-      !gameState.getGameHasStarted(),
+      !gameState.getGameHasStarted() && !gameState.getUserTitleMenu(),
     );
     toggleMenu(pauseMenu, gameState.getIsPaused());
     toggleMenu(optionsMenu, gameState.getOptionsPage());
@@ -986,8 +990,11 @@ gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
       gameState.controls.update(gameState.playerObject.getLookSensitivity());
     }
 
-    renderer.render(scene, camera);
-    cssRenderer.render(scene, camera);
+    // 1. starts the scene rendering 
+    if(!gameState.getUserTitleMenu()){
+      renderer.render(scene, camera);
+      cssRenderer.render(scene, camera);
+    }
   }
 
   // Initiate function or other initializations here

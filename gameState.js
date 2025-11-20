@@ -10,7 +10,6 @@ import {
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { BloodParticleSystem } from "./src/bloodParticleSystem";
 import { GlobeParticleSystem } from "./src/globeParticleSystem";
-import menuData from "./src/ui/menuData";
 import { assembleBasicShip } from "./basicSpaceShip";
 import { MapBuilder } from "./mapBuilder";
 import { InventorySystem } from "./src/inventorySystem";
@@ -43,6 +42,7 @@ export class GameState {
     this.controlsEnabled = false;
     this.reticleVisible = false;
     this.isPaused = false;
+    this.userTitleMenu = true;
     this.gameHasStarted = false;
     this.optionsPage = false;
     this.newGame = false;
@@ -932,6 +932,13 @@ export class GameState {
   }
   setGameHasStarted(toggle) {
     this.gameHasStarted = toggle;
+  }
+  getUserTitleMenu(){
+    return this.userTitleMenu;
+  }
+  setUserTitleMenu(toggle){
+    
+    this.userTitleMenu = toggle;
   }
   getGameHasStarted() {
     return this.gameHasStarted;

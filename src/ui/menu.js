@@ -1,5 +1,4 @@
-import { GameState } from "../../gameState";
-import { MenuActions } from "./menuActions";
+import { GameState } from "../../gameState";import { MenuActions } from "./menuActions";
 export class Menu {
   title;
   nodes; //  [{element, id, class, textContent, parent, onClick}, {element, textContent, parent, onClick}]
@@ -25,6 +24,15 @@ export class Menu {
 
     const menuOptions = this.nodes.map((node) => {
       let element;
+      if (node.element === "video") {
+        console.log("hola");
+        element = document.createElement(node.element);
+        element.src = node?.src;
+        element.muted = node?.muted;
+        element.autoplay = node.autoplay || null;
+        document.getElementById(node.parent).appendChild(element);
+        return;
+      }
       if (node.src) {
         element = document.createElement(node.element);
         element.id = node?.id;
@@ -50,7 +58,7 @@ export class Menu {
       element.maxLength = node?.maxLength;
       element.style.whiteSpace = "pre-wrap";
 
-      if (node.parent !== "hud") {
+      if (node.parent !== "hud" && node.parent !== "titleMenu") {
         element.style.fontSize = "1.5rem";
         element.style.padding = "10px 20px";
         element.style.background = "grey";
@@ -65,7 +73,7 @@ export class Menu {
         // }
       }
       if (node.parent === "hud") {
-        if(node.id !== "instructor" || node.parent =="instructor"){
+        if (node.id !== "instructor" || node.parent == "instructor") {
           element.style.pointerEvents = "none";
           element.style.userSelect = "none";
         }

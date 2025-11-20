@@ -6,6 +6,10 @@ export function menuInit(gameState) {
     ...menuData.hud,
     gameState,
   });
+  const title = new Menu({
+    ...menuData.titleMenu,
+    gameState,
+  })
   const mainMenuConfig = new Menu({
     ...menuData.main,
     gameState: gameState,
@@ -20,6 +24,7 @@ export function menuInit(gameState) {
     gameState: gameState,
   });
   hud.buildMenu();
+  title.buildMenu();
   mainMenuConfig.buildMenu();
   pauseMenuConfig.buildMenu();
   optionsMenuConfig.buildMenu();
