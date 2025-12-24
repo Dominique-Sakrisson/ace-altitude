@@ -567,14 +567,15 @@ if (WebGL.isWebGL2Available()) {
   function showInventory() {
     const inventoryDiv = document.getElementById("inventoryDiv");
     const inventory = document.getElementById("inventory");
-
     if (gameState.inventoryDisplay) {
       inventoryDiv.style.position = "fixed";
       inventory.style.position = "fixed";
       inventoryDiv.style.display = "block";
+      document.body.style.cursor = "default";
     } else {
       inventory.style.display = "none";
       inventoryDiv.style.display = "none";
+      document.body.style.cursor = "none";
     }
   }
   function showTip() {
