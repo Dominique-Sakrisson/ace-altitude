@@ -1,0 +1,21 @@
+# upon inital game start, prompt with individual instructions for each player control in this order
+
+    1.  interact button being v will remove the initial prompt
+    2.  moving the mouse will move the player camera
+    3.  locking the player camera with H will lock the movement unlock again with H
+    4.  wasd controls for movements, prompt each direction
+
+# direct player to look at the ship and select it with the interact button
+
+    1. Note how slow the player moves out in space without a ship (later updates will include a player scene object model showing slow staggered movement in space)
+
+# direct player to the new controls of the ship once inside
+
+    1.  E will center the camera direction (in development fine tuning)
+    2.  left mouse button for the weapon fire
+    3.  R for reloading the weapon
+    4.
+
+#   create initial platform that character walks on 
+
+#   implement true walls and floors collision detection
