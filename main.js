@@ -575,7 +575,13 @@ if (WebGL.isWebGL2Available()) {
     } else {
       inventory.style.display = "none";
       inventoryDiv.style.display = "none";
-      document.body.style.cursor = "none";
+      if(gameState.gameHasStarted){
+        document.body.style.cursor = "none";
+        if(gameState.isPaused){
+          document.body.style.cursor = "default";
+          
+        }
+      }
     }
   }
   function showTip() {
