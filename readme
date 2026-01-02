@@ -1,4 +1,90 @@
 
+# Before attempting to play have reequired tooling installed on local system:
+
+1. git 
+1. nodejs
+1. npm
+1. vite deploy tool
+
+# Play the game on local system multi-client in browser configure the development server to listen on all network interfaces and then access it using your computer's local IP address for multi device LAN play
+
+
+1. locate your network IP on windows 
+    - command prompt `ipconfig`
+    - look for the IPv4 Address under your active network connection be it `wifi` or `ethernet adapter`
+
+1. run vite development with the host flag 
+    - `npm vite --host`
+
+1. From your internet browser enter in the network address from the console on any local internet connected device
+    
+# Play the game on local system multi-client in browser
+
+clone repo
+
+In the project root run commands :
+
+```
+    npm i
+
+    npx vite build
+```
+
+# In the project /server run command:
+
+```
+node index.js
+
+```
+
+## for local single-player development start the server with command
+
+```
+npx vite
+```
+
+## related resources used building project with nodejs
+
+https://lil-gui.georgealways.com/
+https://threejs-journey.com/lessons/textures
+https://threejs.org/docs/index.html#manual/en/introduction/Installation
+https://vite.dev/guide/cli.html
+https://threejs.org/docs/#manual/en/introduction/Libraries-and-Plugins
+https://threejs.org/docs/#manual/en/introduction/Drawing-lines
+https://threejs.org/docs/index.html#api/en/objects/Mesh
+http://localhost:5173/
+https://free3d.com/3d-model/aim-120d-missile-air-to-air-20348.html
+https://threejs.org/manual/#en/fundamentals
+
+## left off
+
+https://threejs.org/manual/#en/scenegraph
+
+### TO DO"S
+
+//events have a timestamp that should be stored to be checked against the last event of that type.
+if the difference is more than or equal to the the character.weapon.attackSpeed that means the weapon ishasnt been shot since then and can be fired again.
+
+this should be done before the game creates a buillet or sends any event to the server.
+
+//for the controls of the hud telling us which key to press, this needs to be retrieved from the actual settings in the game state to dynamically update when users set new controls.
+
+//when it comes to detecting interactions, picking up an object that is able to be interacted with removes it from the scene visually, but how the raycaster is currently working, that object will still trigger the flow for a valid interacting object with no visible object remaining
+--i think this comes down to removing that interacted particle from the globeSystem.particles
+---- completed
+
+character spawns in front of the user explaining to them how to move and interact, what the scene is.
+
+Have clear pathways to follow leading to cssrenderers of different projects
+
+Each project that might have sound will have a distance the sound travels and connection with other people to discuss the project.
+
+Implement some solid objects
+
+Gamestate should track some config for level design
+
+https://adndevblog.typepad.com/cloud_and_mobile/2015/07/embedding-webpages-in-a-3d-threejs-scene.html
+
 
 sources
 567308__bigdino1995__plasmacannon
@@ -11,3 +97,10 @@ longReloadBasic.wav
 shortReloadBasic.wav
 slowStrongShot.wav
 https://freesound.org/people/GreenFireSound/sounds/484115/
+
+branch strategy --
+
+main -- deployed branch
+staging -- testing
+feature branch -- top level branch for new work implementations awaiting official staging test runs
+todos -- standalone branch, (wont merge to staging) managing project roadmap organized within the todo's folder - broken down to hierarchical readme's (mechanics, level design, character design, etc)
