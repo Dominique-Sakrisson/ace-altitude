@@ -25,11 +25,11 @@ export class Menu {
     const menuOptions = this.nodes.map((node) => {
       let element;
       if (node.element === "video") {
-        console.log("hola");
         element = document.createElement(node.element);
-        element.src = node?.src;
-        element.muted = node?.muted;
-        element.autoplay = node.autoplay || null;
+        element.src = node.src ?? null;
+        element.muted = node.muted ?? null;
+        element.loop = node.loop ?? null;
+        element.autoplay = node.autoplay ?? null;
         document.getElementById(node.parent).appendChild(element);
         return;
       }
