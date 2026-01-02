@@ -23,6 +23,7 @@ import { MenuActions } from "./menuActions";export default {
         parent: "titleMenu",
         autoplay: true,
         muted: true,
+        loop: true,
       },
     ],
   },
