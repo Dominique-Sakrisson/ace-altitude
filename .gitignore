@@ -16,7 +16,6 @@ pnpm-debug.log*
 
 
 # Common build outputs
-dist/
 
 
 # IDEs
