@@ -1,4 +1,7 @@
-import { MenuActions } from "./menuActions";export default {
+import { MenuActions } from "./menuActions";
+import fist from '/fist.png';
+import ammoIcon from '/ammoicon8.jpg';
+export default {
   titleMenu: {
     title: "Ace Altitude",
     nodes: [
@@ -6,7 +9,7 @@ import { MenuActions } from "./menuActions";export default {
         element: "div",
         id: "titleBanner",
         parent: "titleMenu",
-        textContent: "Ace Altitude"
+        textContent: "Ace Altitude",
       },
       {
         element: "div",
@@ -19,7 +22,7 @@ import { MenuActions } from "./menuActions";export default {
       {
         id: "titleVideo",
         element: "video",
-        src: "../../public/sounds,reload.mp4",
+        src: "../../public/soundsreload.mp4",
         parent: "titleMenu",
         autoplay: true,
         muted: true,
@@ -187,7 +190,7 @@ import { MenuActions } from "./menuActions";export default {
         element: "img",
         id: "hudAmmoImg",
         textContent: "",
-        src: "/ammo-icon-8.jpg",
+        src: ammoIcon,
         parent: "hud",
         className: "hudControls",
       },
@@ -195,7 +198,7 @@ import { MenuActions } from "./menuActions";export default {
         element: "img",
         id: "hudUnarmed",
         textContent: "",
-        src: "/fist.png",
+        src: fist,
         parent: "hud",
         className: "hudControls",
       },
@@ -203,7 +206,7 @@ import { MenuActions } from "./menuActions";export default {
         element: "img",
         id: "hudUnarmed",
         textContent: "",
-        src: "/fist.png",
+        src: fist,
         parent: "hud",
         className: "hudControls",
       },
