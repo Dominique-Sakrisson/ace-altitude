@@ -1,4 +1,5 @@
-import * as THREE from "three";import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PlayerSetup } from "./playerSetup";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
@@ -113,6 +114,7 @@ export class GameState {
           zRot: players.rotation._z,
         },
       );
+
       this.connectedPlayers[players.id] = ship;
       ship.rotateY(Math.PI);
       this.scene.add(ship);
@@ -147,7 +149,7 @@ export class GameState {
     });
     this.socket.on("player moved", (data) => {
       const player = this.connectedPlayers[data.id];
-      console.log({ data }, "client side response");
+
       if (!player) {
         console.warn(`No player found for id ${data.id}`);
         return;
@@ -243,8 +245,6 @@ export class GameState {
     const elem = document.querySelector(".reticle");
     const style = window.getComputedStyle(elem);
     const offset = parseFloat(style.width) / 2;
-    console.log({ style });
-    console.log({ offset });
 
     reticle.style.left = `${style.left + offset}`;
   }
@@ -289,14 +289,12 @@ export class GameState {
   }
   initKeyHandlers() {
     this.canvas.addEventListener("click", (event) => {
-      // console.log(event);
-      console.log(this.playerObject.clipSize);
       if (this.playerObject.playerCamera.position.x === undefined) return;
       if (this.playerObject.playerShip.position) {
         // if (!this.playerObject.shotCooldown(event.timeStamp)) {
         if (this.playerObject.currentWeapon.reloading) {
           // this.reloadSound.stop();
-          if(!this.reloadSound.isPlaying){
+          if (!this.reloadSound.isPlaying) {
             this.reloadSound.play();
           }
           return;
@@ -480,15 +478,12 @@ export class GameState {
 
       if (event.code === "KeyF") {
         event.preventDefault();
-        console.log(this.playerObject.currentWeapon.reloadSound, "before swap");
-        console.log(this.reloadSound);
 
         this.reloadSound.stop();
         this.playerObject.swapWeapon();
-        // this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
+
         this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
-        // this.reloadSound.play();
-        console.log(this.playerObject.currentWeapon, "after swap");
+
         this.updateAmmoCountHud();
         this.reloadSound.stop();
         this.reloadSound.play();
@@ -689,7 +684,9 @@ export class GameState {
 
         this.socket.emit("player movement", {
           id: this.socket.id,
-          position: this.playerObject.playerShip.group.position,
+          position: this.playerObject.playerCamera.getWorldPosition(
+            new THREE.Vector3(),
+          ),
           rotation: {
             x: this.playerObject.playerShip.rotation.x,
             y: this.playerObject.playerShip.rotation.y,
@@ -720,8 +717,6 @@ export class GameState {
     });
 
     this.window.addEventListener("click", (event) => {
-      // this.setSelectedObject(event);
-      // console.log(event);
       // if (!this.eventValidator.clickEvent(event)) return;
       if (this.playerObject.currentWeapon.reloading) return;
       if (!this.playerObject.currentWeapon.shotCooldown(event.timeStamp))
@@ -933,11 +928,10 @@ export class GameState {
   setGameHasStarted(toggle) {
     this.gameHasStarted = toggle;
   }
-  getUserTitleMenu(){
+  getUserTitleMenu() {
     return this.userTitleMenu;
   }
-  setUserTitleMenu(toggle){
-    
+  setUserTitleMenu(toggle) {
     this.userTitleMenu = toggle;
   }
   getGameHasStarted() {
@@ -1038,12 +1032,10 @@ export class GameState {
     }
   }
   confirmSelectedShip() {
-    // console.log(this.selectedShip);
     this.playerObject.setPlayerShip(this.selectedShip);
     this.reloadSound.stop();
     this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
     this.reloadSound.stop();
-    // this.reloadSound.play();
     this.selectAbleShips = [];
     this.scene.add(this.playerObject.playerShip.group);
     const body = {
@@ -1052,9 +1044,7 @@ export class GameState {
       quaternion: this.playerObject.playerCamera.quaternion,
       position: this.playerObject.playerCamera.position,
     };
-    // this.socket.emit("new player", this.playerObject);
     this.socket.emit("new player", body);
-    // this.socket.emit("new player", this.playerObject.playerShip.group.toJSON());
   }
   setShipGlow(shipGroup, glowing) {
     if (!shipGroup) return;
