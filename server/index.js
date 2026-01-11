@@ -42,19 +42,17 @@ app.use(express.static(join(__dirname, "../dist")));
 io.on("connection", (socket) => {
   console.log("a user has connected");
   socket.on("disconnect", (payload) => {
-    console.log({ payload });
+    // console.log({ payload });
   });
   socket.on("new player", (player) => {
-    console.log("woooo", player);
     socket.broadcast.emit("join players", player);
   });
   socket.on("spawn bullet", (shot) => {
-    console.log({ shot });
+   
     socket.broadcast.emit("spawn bullet", shot);
   });
 
   socket.on("player movement", (data) => {
-    console.log({ data });
     socket.broadcast.emit("player moved", data);
   });
 });
