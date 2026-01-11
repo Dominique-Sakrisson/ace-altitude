@@ -98,9 +98,11 @@ shortReloadBasic.wav
 slowStrongShot.wav
 https://freesound.org/people/GreenFireSound/sounds/484115/
 
+
 branch strategy --
 
 main -- deployed branch
 staging -- testing
 feature branch -- top level branch for new work implementations awaiting official staging test runs
+
 todos -- standalone branch, (wont merge to staging) managing project roadmap organized within the todo's folder - broken down to hierarchical readme's (mechanics, level design, character design, etc)
