@@ -1,4 +1,5 @@
-import * as THREE from "three";import { BasicWeapon } from "./src/weapons/basicWeapon";
+import * as THREE from "three";
+import { BasicWeapon } from "./src/weapons/basicWeapon";
 import { TinyWeapon } from "./src/weapons/tinyWeapon";
 import { Unarmed } from "./src/weapons/unarmed";
 import { Boost } from "./enhancements/boost";
@@ -241,17 +242,27 @@ export class PlayerSetup {
       }
 
       this.handleMoveForwardWithShip(shipDirection, time);
+      const SEND_RATE = 20; // Hz
+      this._lastSend ??= 0;
+
       console.log(this.playerShip, "local rotation");
-      if (this.playerShip.group && this.socket.id) {
-        this.socket.emit("player movement", {
-          id: this.socket.id,
-          position: this.playerShip.group.position,
-          rotation: {
-            x: this.playerShip.rotation.x,
-            y: this.playerShip.rotation.y,
-            z: this.playerShip.rotation.z,
-          },
-        });
+      if (this.playerShip.group && this.socket.id && this.playerObject) {
+        const position = this.playerObject.playerCamera.getWorldPosition(
+          new THREE.Vector3(),
+        );
+        const now = performance.now();
+        if (now - this._lastSend > 1000 / SEND_RATE) {
+          this._lastSend = now;
+          this.socket.emit("player movement", {
+            id: this.socket.id,
+            position,
+            rotation: {
+              x: this.playerShip.rotation.x,
+              y: this.playerShip.rotation.y,
+              z: this.playerShip.rotation.z,
+            },
+          });
+        }
       }
     }
     if (this.getMoveBackward()) {
@@ -262,16 +273,24 @@ export class PlayerSetup {
         );
       }
       this.handleMoveBackwardWithShip(shipDirection, time);
-      if (this.playerShip.group && this.socket.id) {
+      const SEND_RATE = 20; // Hz
+      this._lastSend ??= 0;
+      if (this.playerShip.group && this.socket.id && this.playerObject) {
+         const position = this.playerObject.playerCamera.getWorldPosition(
+          new THREE.Vector3(),
+        );
+        const now = performance.now();
+        if (now - this._lastSend > 1000 / SEND_RATE) {
         this.socket.emit("player movement", {
           id: this.socket.id,
-          position: this.playerShip.group.position,
+          position,
           rotation: {
             x: this.playerShip.rotation.x,
             y: this.playerShip.rotation.y,
             z: this.playerShip.rotation.z,
           },
         });
+      }
       }
     }
 
