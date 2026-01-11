@@ -1,10 +1,17 @@
-import express from "express";import { createServer } from "node:http";
+import express from "express";
+import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { Server } from "socket.io";
 
 const app = express();
 const server = createServer(app);
+server.cors = {
+  origin: [
+    "http://localhost:5173", // dev
+  ],
+  methods: ["GET", "POST"],
+};
 const io = new Server(server);
 
 const __filename = fileURLToPath(import.meta.url);

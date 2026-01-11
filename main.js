@@ -1,5 +1,4 @@
-"use strict";
-import * as THREE from "three";
+"use strict";import * as THREE from "three";
 import "./style.css";
 import WebGL from "three/addons/capabilities/WebGL.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
@@ -22,7 +21,10 @@ import { createMaterial, createTextForScene } from "./objectHelper";
 
 // client/main.js
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3000"); // your Node.js server
+const socket = io("http://localhost:3000", {
+  transports: ["websocket"],
+  withCredentials: true,
+}); // your Node.js server
 
 const WORLD_SCALE = 0.1;
 
@@ -53,10 +55,10 @@ if (WebGL.isWebGL2Available()) {
   //
   const gameState = new GameState({ ...gameConfig });
   //arguments to toggle menu are the element to show, and the case in which the menu would be shown
-    toggleMenu(
-      document.getElementById("titleMenu"),
-      gameState.getUserTitleMenu(),
-    );
+  toggleMenu(
+    document.getElementById("titleMenu"),
+    gameState.getUserTitleMenu(),
+  );
   const mapBuilder = new MapBuilder(gameState);
 
   const inventoryElement = document.getElementById("inventory");
@@ -158,7 +160,7 @@ if (WebGL.isWebGL2Available()) {
   });
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
-  
+
   const fourthShip = assembleBasicShip("target ship", {
     x: 150,
     y: -950,
@@ -184,7 +186,6 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
-  
   const gui = initGui(toggles);
 
   gui.addFolder("player Controls");
@@ -349,16 +350,16 @@ if (WebGL.isWebGL2Available()) {
   const missileObjects = []; // Array to store missile instances
 
   // Load the material (.mtl) file first
-gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
-  console.log(file.scene);
-  const {scene: head} = file
-  head.scale.set(250, 250, 250); // double
-  head.position.y = -900;
-  head.position.x = 300;
-  head.position.z = 50;
+  gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
+    console.log(file.scene);
+    const { scene: head } = file;
+    head.scale.set(250, 250, 250); // double
+    head.position.y = -900;
+    head.position.x = 300;
+    head.position.z = 50;
 
-  scene.add(file.scene)
-});
+    scene.add(file.scene);
+  });
 
   gameState.MTLLoader.load(
     "./models/missile/AIM120D.mtl",
@@ -837,7 +838,7 @@ gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
       // if(!gameState.reloadSound.isPlaying){
-        gameState.displayReload(true);
+      gameState.displayReload(true);
       // }
     } else {
       gameState.reloadSound.stop();
@@ -990,8 +991,8 @@ gameState.GLTFLoader.load("/models/helmet/flightHelmet.gltf", (file) => {
       gameState.controls.update(gameState.playerObject.getLookSensitivity());
     }
 
-    // 1. starts the scene rendering 
-    if(!gameState.getUserTitleMenu()){
+    // 1. starts the scene rendering
+    if (!gameState.getUserTitleMenu()) {
       renderer.render(scene, camera);
       cssRenderer.render(scene, camera);
     }
