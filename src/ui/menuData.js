@@ -1,4 +1,5 @@
-import { MenuActions } from "./menuActions";import fist from "/fist.png";
+import { MenuActions } from "./menuActions";
+import fist from "/fist.png";
 import ammoIcon from "/ammoicon8.jpg";
 import titleVideo from "/soundsreload.mp4";
 export default {
