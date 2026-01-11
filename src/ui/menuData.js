@@ -1,6 +1,7 @@
 import { MenuActions } from "./menuActions";
-import fist from '/fist.png';
-import ammoIcon from '/ammoicon8.jpg';
+import fist from "/fist.png";
+import ammoIcon from "/ammoicon8.jpg";
+import titleVideo from "/soundsreload.mp4";
 export default {
   titleMenu: {
     title: "Ace Altitude",
@@ -22,7 +23,7 @@ export default {
       {
         id: "titleVideo",
         element: "video",
-        src: "../../public/soundsreload.mp4",
+        src: titleVideo,
         parent: "titleMenu",
         autoplay: true,
         muted: true,
