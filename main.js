@@ -852,7 +852,6 @@ if (WebGL.isWebGL2Available()) {
       gameState.displayReload(false);
     }
     if (time - lastCheck > 40) {
-      console.log(gameState.playerObject.clipSize);
       gameState.updateShots(time);
       if (gameState.playerObject.playerShip.object) {
         tempEuler.setFromQuaternion(gameState.playerObject.playerCamera);
