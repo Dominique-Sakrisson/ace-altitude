@@ -43,6 +43,25 @@ node index.js
 npx vite
 ```
 
+
+
+## to deploy new changes: 
+
+create a new branch off of the deploy ready staging branch.
+in the deploy-branch update the bundled code by running the command:
+npm run build
+
+then :
+ change the vite.config.js to match with the deploy config linked in this section
+
+make a pull request again the branch to be deployed with the new bundled code 
+deploy the new code to gh-pages by the pages panel, click deplyed and re-run all jobs on the next page.
+
+config for deploy: 
+https://github.com/Dominique-Sakrisson/ace-altitude/blob/main/vite.config.js
+
+
+
 ## related resources used building project with nodejs
 
 https://lil-gui.georgealways.com/
