@@ -19,12 +19,17 @@ import vertexShader from "./src/shaders/vertex.glsl?raw";
 import fragmentShader from "./src/shaders/fragment.glsl?raw";
 import { createMaterial, createTextForScene } from "./objectHelper";
 
-// client/main.js
+const wsUrl = import.meta.env?.VITE_WS_URL;
+
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3000", {
-  transports: ["websocket"],
-  withCredentials: true,
-}); // your Node.js server
+let socket = {};
+if (wsUrl) {
+  // client/main.js
+  socket = io("http://localhost:3000", {
+    transports: ["websocket"],
+    withCredentials: true,
+  }); // your Node.js server
+}
 
 const WORLD_SCALE = 0.1;
 
@@ -575,11 +580,10 @@ if (WebGL.isWebGL2Available()) {
     } else {
       inventory.style.display = "none";
       inventoryDiv.style.display = "none";
-      if(gameState.gameHasStarted){
+      if (gameState.gameHasStarted) {
         document.body.style.cursor = "none";
-        if(gameState.isPaused){
+        if (gameState.isPaused) {
           document.body.style.cursor = "default";
-          
         }
       }
     }
