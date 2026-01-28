@@ -104,62 +104,76 @@ export class GameState {
     this.selectAbleShips = [];
     this.objectLoader = new THREE.ObjectLoader();
     this.connectedPlayers = {};
-    this.socket.on("join players", (players) => {
-      const ship = assembleBasicShip(
-        players.id,
-        { x: players.position.x, y: players.position.y, z: players.position.z },
-        {
-          xRot: players.rotation._x,
-          yRot: players.rotation._y,
-          zRot: players.rotation._z,
-        },
-      );
 
-      this.connectedPlayers[players.id] = ship;
-      ship.rotateY(Math.PI);
-      this.scene.add(ship);
-    });
-
-    this.socket.on("spawn bullet", (data) => {
-      const pos = {
-        cameraPos: new THREE.Vector3(
-          data.position.x,
-          data.position.y,
-          data.position.z,
-        ),
-        cameraDir: new THREE.Vector3(
-          data.direction.x,
-          data.direction.y,
-          data.direction.z,
-        ).normalize(),
-      };
-      if (data.sound === "shootBasicGun") {
-        const sound = new THREE.PositionalAudio(this.audioListener);
-        sound.setBuffer(this.shootBasicGun.buffer);
-        sound.setRefDistance(100);
-        sound.setVolume(0.15);
-        const bulletGroup = createBulletFromData(
-          this.scene,
-          this.activeShots,
-          pos,
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("join players", (players) => {
+        const ship = assembleBasicShip(
+          players.id,
+          {
+            x: players.position.x,
+            y: players.position.y,
+            z: players.position.z,
+          },
+          {
+            xRot: players.rotation._x,
+            yRot: players.rotation._y,
+            zRot: players.rotation._z,
+          },
         );
-        bulletGroup.add(sound);
-        sound.play();
-      }
-    });
-    this.socket.on("player moved", (data) => {
-      const player = this.connectedPlayers[data.id];
 
-      if (!player) {
-        console.warn(`No player found for id ${data.id}`);
-        return;
-      }
+        this.connectedPlayers[players.id] = ship;
+        ship.rotateY(Math.PI);
+        this.scene.add(ship);
+      });
+    }
 
-      // Now you can safely update that player’s position or whatever you need
-      player.position.set(data.position.x, data.position.y, data.position.z);
-      player.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
-      player.rotateY(Math.PI);
-    });
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("spawn bullet", (data) => {
+        const pos = {
+          cameraPos: new THREE.Vector3(
+            data.position.x,
+            data.position.y,
+            data.position.z,
+          ),
+          cameraDir: new THREE.Vector3(
+            data.direction.x,
+            data.direction.y,
+            data.direction.z,
+          ).normalize(),
+        };
+        if (data.sound === "shootBasicGun") {
+          const sound = new THREE.PositionalAudio(this.audioListener);
+          sound.setBuffer(this.shootBasicGun.buffer);
+          sound.setRefDistance(100);
+          sound.setVolume(0.15);
+          const bulletGroup = createBulletFromData(
+            this.scene,
+            this.activeShots,
+            pos,
+          );
+          bulletGroup.add(sound);
+          sound.play();
+        }
+      });
+    }
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("player moved", (data) => {
+        const player = this.connectedPlayers[data.id];
+
+        if (!player) {
+          console.warn(`No player found for id ${data.id}`);
+          return;
+        }
+
+        // Now you can safely update that player’s position or whatever you need
+        player.position.set(data.position.x, data.position.y, data.position.z);
+        player.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+        player.rotateY(Math.PI);
+      });
+    }
+  }
+  checkSocket(socket) {
+    return !!socket;
   }
   addSelectableShip(ship) {
     this.selectAbleShips.push(ship);
@@ -421,12 +435,14 @@ export class GameState {
             }, 200);
           }
         }
-        this.socket.emit("spawn bullet", {
-          owner: this.socket.id,
-          position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
-          direction: { x: direction.x, y: direction.y, z: direction.z },
-          sound: "shootBasicGun", // just a name or ID
-        });
+        if (this.checkSocket(this.socket.on)) {
+          this.socket.emit("spawn bullet", {
+            owner: this.socket.id,
+            position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
+            direction: { x: direction.x, y: direction.y, z: direction.z },
+            sound: "shootBasicGun", // just a name or ID
+          });
+        }
       } else {
         const direction = new THREE.Vector3();
         document.getElementById("hudUnarmed").style.display = "block";
@@ -681,18 +697,19 @@ export class GameState {
         const { raycaster } = this.playerObject.playerCamera;
         const targetPosition =
           this.playerObject.playerCamera.raycaster.ray.direction.clone();
-
-        this.socket.emit("player movement", {
-          id: this.socket.id,
-          position: this.playerObject.playerCamera.getWorldPosition(
-            new THREE.Vector3(),
-          ),
-          rotation: {
-            x: this.playerObject.playerShip.rotation.x,
-            y: this.playerObject.playerShip.rotation.y,
-            z: this.playerObject.playerShip.rotation.z,
-          },
-        });
+        if (this.checkSocket(this.socket.on)) {
+          this.socket.emit("player movement", {
+            id: this.socket.id,
+            position: this.playerObject.playerCamera.getWorldPosition(
+              new THREE.Vector3(),
+            ),
+            rotation: {
+              x: this.playerObject.playerShip.rotation.x,
+              y: this.playerObject.playerShip.rotation.y,
+              z: this.playerObject.playerShip.rotation.z,
+            },
+          });
+        }
       }
       this.setSelectedObject(event);
       if (
@@ -1044,7 +1061,9 @@ export class GameState {
       quaternion: this.playerObject.playerCamera.quaternion,
       position: this.playerObject.playerCamera.position,
     };
-    this.socket.emit("new player", body);
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.emit("new player", body);
+    }
   }
   setShipGlow(shipGroup, glowing) {
     if (!shipGroup) return;
