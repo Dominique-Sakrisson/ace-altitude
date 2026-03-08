@@ -31,6 +31,7 @@ if (wsUrl) {
   }); // your Node.js server
 }
 
+
 const WORLD_SCALE = 0.1;
 
 if (WebGL.isWebGL2Available()) {
