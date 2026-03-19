@@ -12,6 +12,10 @@ export default {
         parent: "titleMenu",
         textContent: "Ace Altitude",
       },
+      { element: "h2",
+        id: "titleBannerText",
+        parent: "titleMenu",
+        textContent: "Explore, Discover, Create, Destroy! In Space!",},
       {
         element: "div",
         id: "titleContent",

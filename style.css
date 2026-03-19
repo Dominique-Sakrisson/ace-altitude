@@ -18,6 +18,7 @@ html,body {
 }
 
 #titleMenu {
+  display: none;
   position: fixed;
   text-align: center;
   width: 100%;
@@ -28,6 +29,15 @@ html,body {
   font-size: 10rem;
   top: 10%;
   left: 5%;
+  background-image: linear-gradient(to right, #218bff, #c084fc, #db2777);
+  background-clip: text;
+  color: transparent;
+}
+#titleBannerText{
+  position: absolute;
+  /* font-size: 10rem; */
+  top: 25%;
+  left: 10%;
   background-image: linear-gradient(to right, #218bff, #c084fc, #db2777);
   background-clip: text;
   color: transparent;
@@ -235,7 +245,7 @@ video {
   font-size: 2rem;
   /* justify-content: center; */
   text-align: center;
-  display: inline-block;
+  display: none;
 }
 #toolTip:hover {
   /* background: linear-gradient(135deg, #999, #ccc); */
