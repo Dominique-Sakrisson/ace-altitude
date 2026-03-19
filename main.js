@@ -588,18 +588,18 @@ if (WebGL.isWebGL2Available()) {
       }
     }
   }
-  function showTip() {
-    toolTip.innerHTML = `Being in Orbit is tricky! \n
-    
-    \n
-    Its easier to get around in a ship.
 
+  function showMouseTip() {
+    toolTip.innerHTML = `
+    Being in Orbit is better in a ship 
+    <br/>
+    <br/>
     Use the mouse to point at a ship you want until it turns gold!
- \n
+    <br />
+    <br />
     To stabilize your vision press "h" on your keyboard,
-
-    
     Then click here to hop in!`;
+
     if (!gameState.playerObject.playerShip.position) {
       toolTip.style.display = "block";
     } else {
@@ -609,11 +609,45 @@ if (WebGL.isWebGL2Available()) {
     toolTip.onclick = (event) => {
       if (gameState.selectAbleShips.length && gameState.selectedShip)
         gameState.confirmSelectedShip();
+      document.querySelectorAll(".hudControls").forEach((el) => {
+        if (el.id !== "hudUnarmed") {
+          el.style.display = "block";
+        }
+      });
     };
   }
+
+  function showMoveTip() {
+    toolTip.innerHTML = `
+    Begin moving with 
+    <br />
+    <br />
+    W , A , S, D`;
+
+    if (gameState.tutorial) {
+      toolTip.style.display = "block";
+    } else {
+      toolTip.style.display = "none";
+      return true;
+    }
+    toolTip.style.background = "red";
+    toolTip.onclick = (event) => {
+      if (gameState.selectAbleShips.length && gameState.selectedShip)
+        gameState.confirmSelectedShip();
+      document.querySelectorAll(".hudControls").forEach((el) => {
+        if (el.id !== "hudUnarmed") {
+          el.style.display = "block";
+        }
+      });
+    };
+  }
+
   function updateGameState() {
     if (gameState.getGameHasStarted()) {
-      showTip();
+      const step = showMoveTip();
+      if (step) {
+        showMouseTip();
+      }
     }
     if (gameState.inventoryDisplay) {
       showInventory();
