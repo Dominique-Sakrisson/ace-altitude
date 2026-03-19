@@ -45,6 +45,7 @@ export class GameState {
     this.isPaused = false;
     this.userTitleMenu = true;
     this.gameHasStarted = false;
+    this.tutorial = true;
     this.optionsPage = false;
     this.newGame = false;
     this.activeMenu = this.readActiveMenu();
@@ -850,6 +851,9 @@ export class GameState {
         event.preventDefault();
         if (this.getIsPaused() || !this.getGameHasStarted()) return;
         this.playerObject.setMoveForward(true);
+        if (this.getTutorial()) {
+          this.tutorial = false;
+        }
         // this.updatePlayerPosition();
       }
       if (event.code === "KeyA") {
@@ -953,6 +957,9 @@ export class GameState {
   }
   getGameHasStarted() {
     return this.gameHasStarted;
+  }
+  getTutorial() {
+    return this.tutorial;
   }
   getIsPaused() {
     return this.isPaused;
