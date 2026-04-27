@@ -7,7 +7,7 @@ import {
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
 import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
-import { initGui } from "./src/ui/gui";
+// import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
 import { AutomationUtils } from "./automationUtils";
@@ -191,11 +191,11 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
-  const gui = initGui(toggles);
+  // const gui = initGui(toggles);
 
-  gui.addFolder("player Controls");
+  // gui.addFolder("player Controls");
 
-  let guiAdd = false;
+  // let guiAdd = false;
 
   renderer.domElement.style.margin = "0";
   renderer.domElement.style.padding = "0";
@@ -331,16 +331,16 @@ if (WebGL.isWebGL2Available()) {
   // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
 
   position(heightTerrain.terrainGroup, { x: 0, y: 80, z: -3000 });
-  gui
-    .add(heightTerrain.terrainGroup.position, "x", -100000, 100000, 15)
-    // .name("earth x")
-    .onChange((value) => {
-      position(heightTerrain.terrainGroup, {
-        x: value,
-        y: heightTerrain.terrainGroup.position.y,
-        z: heightTerrain.terrainGroup.position.z,
-      });
-    });
+  // gui
+  //   .add(heightTerrain.terrainGroup.position, "x", -100000, 100000, 15)
+  //   // .name("earth x")
+  //   .onChange((value) => {
+  //     position(heightTerrain.terrainGroup, {
+  //       x: value,
+  //       y: heightTerrain.terrainGroup.position.y,
+  //       z: heightTerrain.terrainGroup.position.z,
+  //     });
+  //   });
 
   scene.add(heightTerrain.terrainGroup);
   scene.add(flatTerrain.groundMesh);
@@ -793,81 +793,81 @@ if (WebGL.isWebGL2Available()) {
   // });
 
   function animate(time) {
-    if (!guiAdd && gameState.playerObject.playerShip.object) {
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "y",
-          -100,
-          100,
-          0.005,
-        )
-        .name("rotate y")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.y = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "x",
-          -10,
-          10,
-          0.01,
-        )
-        .name("rotate x")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.x = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "z",
-          -100,
-          100,
-          0.01,
-        )
-        .name("rotate z")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.z = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "y",
-          -100,
-          100,
-          1,
-        )
-        .name("position y")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.y = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "x",
-          -100,
-          100,
-          1,
-        )
-        .name("position x")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.x = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "z",
-          -360,
-          360,
-          1,
-        )
-        .name("position z")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.z = value;
-        });
-      guiAdd = true;
-    }
+    // if (!guiAdd && gameState.playerObject.playerShip.object) {
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "y",
+    //       -100,
+    //       100,
+    //       0.005,
+    //     )
+    //     .name("rotate y")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.y = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "x",
+    //       -10,
+    //       10,
+    //       0.01,
+    //     )
+    //     .name("rotate x")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.x = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "z",
+    //       -100,
+    //       100,
+    //       0.01,
+    //     )
+    //     .name("rotate z")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.z = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "y",
+    //       -100,
+    //       100,
+    //       1,
+    //     )
+    //     .name("position y")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.y = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "x",
+    //       -100,
+    //       100,
+    //       1,
+    //     )
+    //     .name("position x")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.x = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "z",
+    //       -360,
+    //       360,
+    //       1,
+    //     )
+    //     .name("position z")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.z = value;
+    //     });
+    //   guiAdd = true;
+    // }
     if (gameState.playerObject.playerShip) {
     }
     // gameState.getGameHasStarted();

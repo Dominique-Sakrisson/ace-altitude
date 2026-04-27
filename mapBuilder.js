@@ -154,10 +154,9 @@ export class MapBuilder {
   // }
 
   genHeightTerrain(groundMaterialShader, options) {
-    const gui = new dat.GUI();
+    
     const { radius, heightSegments, widthSegments, category } = options;
-    const sphereFolder = gui.addFolder("Sphere Controls");
-    this.buildGui(sphereFolder);
+    
 
     // const sphereGeoOptions = {
     //   radius: options.w,
@@ -186,50 +185,7 @@ export class MapBuilder {
     const groundMesh = new THREE.Mesh(groundGeo, groundMaterialShader); // this is with shaderMaterial
     groundMesh.receiveShadow = true;
 
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "radius", 0, 3000, 15)
-      .name("radius for earth")
-      .onChange((value) => {
-        // ensure base is always smaller
-        // baseSphere.geometry.dispose();
-        if (sphereGeoOptions.radius >= value) {
-          let newRadius = value - 100;
-          sphereGeoOptions.radius = newRadius;
-
-          baseSphere.geometry = new THREE.SphereGeometry(newRadius, 64, 64);
-        }
-        if (sphereGeoOptions.radius <= value) {
-          let newRadius = value - 100;
-          sphereGeoOptions.radius = newRadius;
-          baseSphere.geometry = new THREE.SphereGeometry(value - 100, 64, 64);
-        }
-        // groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          value,
-          groundMesh.geometry.parameters.heightSegments,
-          groundMesh.geometry.parameters.widthSegments,
-        );
-      });
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "heightSegments", 0, 1000, 5)
-      .onChange((value) => {
-        groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          groundMesh.geometry.parameters.radius,
-          value,
-          groundMesh.geometry.parameters.widthSegments,
-        );
-      });
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "widthSegments", 0, 1000, 5)
-      .onChange((value) => {
-        groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          groundMesh.geometry.parameters.radius,
-          groundMesh.geometry.parameters.widthSegments,
-          value,
-        );
-      });
+   
 
     const terrainGroup = new THREE.Group();
     terrainGroup.add(groundMesh);
@@ -375,6 +331,6 @@ export class MapBuilder {
         this.uniforms.snowColorDepth.value = value;
       });
     // open the folder by default
-    sphereFolder.open();
+    // sphereFolder.open();
   }
 }
