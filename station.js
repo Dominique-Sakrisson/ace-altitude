@@ -76,6 +76,7 @@ export function stationMeshGen() {}
 export function initStation(position) {
   const { x, y, z } = position;
   const group = new THREE.Group();
+  group.isInteractable = false;
   const station = stationGeometryGen();
   //   const lights = generateLighting();
   station.forEach((obj) => group.add(obj));

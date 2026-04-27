@@ -163,6 +163,7 @@ export class PlayerSetup {
     this.playerShip.object.parent.rotation.z = 3.15;
 
     const group = new THREE.Group();
+    group.isInteractable = false;
     group.add(this.playerCamera);
 
     this.playerShip.group = group;
@@ -245,7 +246,6 @@ export class PlayerSetup {
       const SEND_RATE = 20; // Hz
       this._lastSend ??= 0;
 
-      console.log(this.playerShip, "local rotation");
       if (this.playerShip.group && this.socket.id && this.playerObject) {
         const position = this.playerObject.playerCamera.getWorldPosition(
           new THREE.Vector3(),

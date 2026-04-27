@@ -128,6 +128,7 @@ export function createBullet(camera, scene, shots, pos) {
   const mesh = new THREE.Mesh(bullet, createMaterial());
   const flameMesh = new THREE.Mesh(bullet, flameMaterial);
   const projectileGroup = new THREE.Group();
+  projectileGroup.isInteractable = false;
   const worldPos = new THREE.Vector3();
   const worldDirection = new THREE.Vector3();
   camera.updateMatrixWorld(true);
@@ -247,7 +248,7 @@ export function createBulletFromData(scene, shots, pos) {
   const flameMesh = new THREE.Mesh(bullet, flameMaterial);
 
   const projectileGroup = new THREE.Group();
-
+projectileGroup.isInteractable = false;
   // Ensure cameraPos and cameraDir are THREE.Vector3
   const spawnPos = pos.cameraPos.clone();
   const dir = pos.cameraDir.clone().normalize();

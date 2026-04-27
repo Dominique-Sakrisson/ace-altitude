@@ -157,12 +157,14 @@ if (WebGL.isWebGL2Available()) {
     y: -950,
     z: -150,
   });
+  secondShip.isInteractable = true;
   secondShip.rotation.x = 100;
   const thirdShip = assembleBasicShip("target ship", {
     x: -150,
     y: -950,
     z: 100,
   });
+  thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
 
@@ -171,6 +173,7 @@ if (WebGL.isWebGL2Available()) {
     y: -950,
     z: 100,
   });
+  fourthShip.isInteractable = true;
   fourthShip.rotation.x = -100;
   fourthShip.rotation.y = -100;
 
@@ -222,58 +225,11 @@ if (WebGL.isWebGL2Available()) {
   const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
   const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
 
-  function generateMetalWallTexture(width = 512, height = 512) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-
-    // Base fill (steel gray)
-    ctx.fillStyle = "#999";
-    ctx.fillRect(0, 0, width, height);
-
-    // Add brushed streaks
-    for (let y = 0; y < height; y++) {
-      const alpha = Math.random() * 0.2;
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    // Add vertical panel divisions
-    ctx.strokeStyle = "rgba(40,40,40,0.8)";
-    ctx.lineWidth = 4;
-    for (let x = width / 4; x < width; x += width / 4) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.needsUpdate = true;
-
-    return texture;
-  }
 
   scene.background = mapBuilder.buildSkybox();
-  const flatTerrain = await mapBuilder.buildFlatTerrain(
-    500,
-    3,
-    500,
-    generateMetalWallTexture(),
-  );
-  const wall = await mapBuilder.buildFlatTerrain(
-    1000,
-    1000,
-    3,
-    generateMetalWallTexture(),
-    100,
-    100,
-  );
+ 
+
+  const prefabHanger = await mapBuilder.generatePreFabHanger();
   const heightTerrain = await mapBuilder.buildGlobe(2000, 64, 64);
 
   function position(object, cords) {
@@ -296,14 +252,14 @@ if (WebGL.isWebGL2Available()) {
   scene.add(practice);
 
   position(practice, { x: 0, y: -800, z: -6520 });
-  position(flatTerrain.groundMesh, { x: 0, y: -1150, z: 0 });
-  position(wall.groundMesh, { x: 0, y: -800, z: -300 });
-
+  // position(flatTerrain.groundMesh, { x: 0, y: -1150, z: 0 });
+  // position(wall.groundMesh, { x: 0, y: -800, z: -300 });
+position(prefabHanger, { x: 0, y: -800, z: -300 } )
   // @TODO:
   // position(gameState.playerObject.playerCamera, { x: 0, y: -80, z: 50 });
 
   const color = new THREE.Color(0xffffff);
-  const intensity = 5;
+  const intensity = 1;
   const lightConfig = {
     color,
     intensity,
@@ -343,8 +299,9 @@ if (WebGL.isWebGL2Available()) {
   //   });
 
   scene.add(heightTerrain.terrainGroup);
-  scene.add(flatTerrain.groundMesh);
-  scene.add(wall.groundMesh);
+  // scene.add(flatTerrain.groundMesh);
+  // scene.add(wall.groundMesh);
+  scene.add(prefabHanger)
   // scene.add(wall2.groundMesh);
   // scene.add(wall3.groundMesh);
   // scene.add(wall4.groundMesh);

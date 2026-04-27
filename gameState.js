@@ -355,10 +355,29 @@ export class GameState {
           }, this.playerObject.currentWeapon.reloadSpeed);
         }
 
+        const allObjects = [];
+
+        this.scene.traverse((child) => {
+          if (child.isGroup && child.markerConfig) {
+            allObjects.push(child);
+          }
+        });
+        this.targetingSystem = new TargetingSystem(
+          this.playerObject.playerCamera,
+          allObjects,
+        );
+       
         if (this.targetingSystem.intersects.length) {
+          const {
+            target,
+            baryCoords,
+            targetGeometry: geometry,
+          } = this.targetingSystem.getCurrentTarget();
+          document.getElementById("hudDist").innerHTML =
+            `Distance \n ${target.distance.toFixed(2)}`;
+          this.selectedObject = target;
           const colorAttr =
             this.selectedObject.object.geometry.attributes.color;
-          // const geometry = this.selectedObject.object.geometry;
 
           //check if the object is within range of the weapon distance
           if (this.geometry.isBufferGeometry) {
@@ -1021,19 +1040,21 @@ export class GameState {
     this.controls.rollSpeed = rollSpeed;
   }
   setSelectedObject(event) {
+    const interactable = [];
+    const solidObjects = [];
     const allObjects = [];
 
     this.scene.traverse((child) => {
-      if (child.isGroup) {
-        allObjects.push(child);
+      if (child.isGroup && child.isInteractable) {
+        interactable.push(child);
       }
     });
     let targetingSystem;
 
-    if (allObjects.length) {
+    if (interactable.length) {
       this.targetingSystem = new TargetingSystem(
         this.playerObject.playerCamera,
-        allObjects,
+        interactable,
       );
     }
 
