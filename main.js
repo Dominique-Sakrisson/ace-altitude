@@ -356,12 +356,8 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
   //   });
 
   scene.add(heightTerrain.terrainGroup);
-  // scene.add(flatTerrain.groundMesh);
-  // scene.add(wall.groundMesh);
   scene.add(prefabHanger)
-  // scene.add(wall2.groundMesh);
-  // scene.add(wall3.groundMesh);
-  // scene.add(wall4.groundMesh);
+ 
 
   //===============================================================
   let currentAmmo = [];
