@@ -7,7 +7,7 @@ import {
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
 import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
-// import { initGui } from "./src/ui/gui";
+import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
 import { AutomationUtils } from "./automationUtils";
@@ -153,25 +153,25 @@ if (WebGL.isWebGL2Available()) {
   spaceShipGroup.add(gameState.engineSound);
 
   const secondShip = assembleBasicShip("target ship", {
-    x: 0,
-    y: -950,
-    z: -150,
+    x: -205,
+    y: -844,
+    z: 140,
   });
   secondShip.isInteractable = true;
   secondShip.rotation.x = 100;
   const thirdShip = assembleBasicShip("target ship", {
-    x: -150,
-    y: -950,
-    z: 100,
+    x: 263,
+    y: -770,
+    z: 140,
   });
   thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
 
   const fourthShip = assembleBasicShip("target ship", {
-    x: 150,
-    y: -950,
-    z: 100,
+    x: 17,
+    y: -824,
+    z: 115,
   });
   fourthShip.isInteractable = true;
   fourthShip.rotation.x = -100;
@@ -194,7 +194,7 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
-  // const gui = initGui(toggles);
+  const gui = initGui(toggles);
 
   // gui.addFolder("player Controls");
 
@@ -283,6 +283,63 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
       secondShip.position.z + 200,
     ),
   );
+
+
+  
+
+
+
+
+
+  
+  // gui.add(secondShip.position, "x", -1000, 1000, 1)
+  // .name("second ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.x = value;  
+  //   });
+  // gui.add(secondShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.y = value;  
+  //   });
+  // gui.add(secondShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.z = value;  
+  //   });
+  // gui.add(thirdShip.position, "x", -1000, 1000, 1)
+  // .name("third ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.x = value;  
+  //   });
+  // gui.add(thirdShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.y = value;  
+  //   });
+  // gui.add(thirdShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.z = value;  
+  //   });
+  // gui.add(fourthShip.position, "x", -1000, 1000, 1)
+  // .name("fourth ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.x = value;  
+  //   });
+  // gui.add(fourthShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.y = value;  
+  //   });
+  // gui.add(fourthShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.z = value;  
+  //   });
   // bottomLeftShipDisplay.target = secondShip;
   // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
 
@@ -559,6 +616,7 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
 
     if (!gameState.playerObject.playerShip.position) {
       toolTip.style.display = "block";
+      toolTip.style.fontSize = "1em";
     } else {
       toolTip.style.display = "none";
     }
