@@ -221,14 +221,12 @@ if (WebGL.isWebGL2Available()) {
   const boxWidth = 2;
   const boxHeight = 1;
   const boxDepth = 3;
-
   const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
   const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
 
-
   scene.background = mapBuilder.buildSkybox();
- 
 
+  //in game platform surrounding the ships
   const prefabHanger = await mapBuilder.generatePreFabHanger();
   const heightTerrain = await mapBuilder.buildGlobe(2000, 64, 64);
 
@@ -252,9 +250,8 @@ if (WebGL.isWebGL2Available()) {
   scene.add(practice);
 
   position(practice, { x: 0, y: -800, z: -6520 });
-  // position(flatTerrain.groundMesh, { x: 0, y: -1150, z: 0 });
-  // position(wall.groundMesh, { x: 0, y: -800, z: -300 });
-position(prefabHanger, { x: 0, y: -800, z: -300 } )
+  //in game platform surrounding the ships
+  position(prefabHanger, { x: 0, y: -800, z: -300 });
   // @TODO:
   // position(gameState.playerObject.playerCamera, { x: 0, y: -80, z: 50 });
 
@@ -284,61 +281,53 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
     ),
   );
 
-
-  
-
-
-
-
-
-  
   // gui.add(secondShip.position, "x", -1000, 1000, 1)
   // .name("second ship x")
   // .onChange((value) => {
   //   console.log(value);
-  //     secondShip.position.x = value;  
+  //     secondShip.position.x = value;
   //   });
   // gui.add(secondShip.position, "y", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     secondShip.position.y = value;  
+  //     secondShip.position.y = value;
   //   });
   // gui.add(secondShip.position, "z", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     secondShip.position.z = value;  
+  //     secondShip.position.z = value;
   //   });
   // gui.add(thirdShip.position, "x", -1000, 1000, 1)
   // .name("third ship x")
   // .onChange((value) => {
   //   console.log(value);
-  //     thirdShip.position.x = value;  
+  //     thirdShip.position.x = value;
   //   });
   // gui.add(thirdShip.position, "y", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     thirdShip.position.y = value;  
+  //     thirdShip.position.y = value;
   //   });
   // gui.add(thirdShip.position, "z", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     thirdShip.position.z = value;  
+  //     thirdShip.position.z = value;
   //   });
   // gui.add(fourthShip.position, "x", -1000, 1000, 1)
   // .name("fourth ship x")
   // .onChange((value) => {
   //   console.log(value);
-  //     fourthShip.position.x = value;  
+  //     fourthShip.position.x = value;
   //   });
   // gui.add(fourthShip.position, "y", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     fourthShip.position.y = value;  
+  //     fourthShip.position.y = value;
   //   });
   // gui.add(fourthShip.position, "z", -1000, 1000, 1)
   // .onChange((value) => {
   //   console.log(value);
-  //     fourthShip.position.z = value;  
+  //     fourthShip.position.z = value;
   //   });
   // bottomLeftShipDisplay.target = secondShip;
   // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
@@ -356,8 +345,7 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
   //   });
 
   scene.add(heightTerrain.terrainGroup);
-  scene.add(prefabHanger)
- 
+  scene.add(prefabHanger);
 
   //===============================================================
   let currentAmmo = [];
@@ -879,8 +867,6 @@ position(prefabHanger, { x: 0, y: -800, z: -300 } )
     //     });
     //   guiAdd = true;
     // }
-    if (gameState.playerObject.playerShip) {
-    }
     // gameState.getGameHasStarted();
     gameState.controls.enabled = gameState.getControlsEnabled();
     heightTerrain.groundMesh.rotation.y += 0.0001;
