@@ -693,12 +693,13 @@ if (WebGL.isWebGL2Available()) {
     );
   }
 
-  function calculateShipSpeed(time) {
+  function calculateShipSpeed(time, targetting) {
+    let speedModifier = targetting? 0.0005 : 0.003;
+    time *=  0.001; // convert time to seconds
     // move spaceship
-    time *= 0.001; // convert time to seconds
     //because this is in the animation loop, each iteration will find a new point within the spline curve to adjust direction and orientation
     //updating the meta data for posiont and orientation
-    const shipTime = time * 0.003;
+    const shipTime = time * speedModifier;
     //affects how many points are calculated along the vector curve to set the position and orientation
     const shipSpeed = shipTime % 1;
     return shipSpeed;
