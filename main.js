@@ -987,9 +987,44 @@ if (WebGL.isWebGL2Available()) {
     //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class
     if (deltaTime >= 50) {
     }
+    // @TODO: just some crazyiness here when attaching to the ship,
+    // player movement speed cut down almsot down fold
     gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
+    console.log("player position camera",
+      gameState.playerObject.playerShip.position,
+    );
+    console.log("player position ship",
+      gameState.playerObject.position,
+    );
+    console.log("ship group",
+      shipPosition,
+    );
 
-    calculateMovementAutomation(curve, calculateShipSpeed(time), shipPosition);
+
+    if (
+      shipPosition.distanceTo(gameState.playerObject.playerCamera.position) <
+      800
+    ) {
+      const playerTargetAutomation = [
+        shipPosition,
+        gameState.playerObject.playerCamera.position,
+      ];
+      let playerCurve = AutomationUtils.createAutomationMovement(
+        playerTargetAutomation,
+      );
+
+      calculateMovementAutomation(
+        playerCurve,
+        calculateShipSpeed(time, true),
+        shipPosition,
+      );
+    } else {
+      calculateMovementAutomation(
+        curve,
+        calculateShipSpeed(time, false),
+        shipPosition,
+      );
+    }
     updateProgrammedCharacters(spaceShipGroup, "spaceShipGroup");
 
     // Calculate the direction vector from shipPosition to SHIP_TARGET
