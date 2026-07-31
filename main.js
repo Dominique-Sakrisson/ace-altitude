@@ -1003,12 +1003,14 @@ if (WebGL.isWebGL2Available()) {
       if (
         shipPosition.distanceTo(
           getObjectGlobalPosition(gameState.playerObject.playerShip),
-        ) < 2400
+        ) < 1600
       ) {
       }
       const playerTargetAutomation = [
         shipPosition,
-        getObjectGlobalPosition(gameState.playerObject.playerShip),
+        getObjectGlobalPosition(gameState.playerObject.playerShip).add(
+          new THREE.Vector3(200, 200, 200),
+        ),
       ];
       let playerCurve = AutomationUtils.createAutomationMovement(
         playerTargetAutomation,
