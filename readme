@@ -106,3 +106,19 @@ staging -- testing
 feature branch -- top level branch for new work implementations awaiting official staging test runs
 
 todos -- standalone branch, (wont merge to staging) managing project roadmap organized within the todo's folder - broken down to hierarchical readme's (mechanics, level design, character design, etc)
+
+
+
+
+@tickets
+
+status: ready for staging merge
+feature/UI-updates
+-- feature/materials-tools
+---- domsakrisson-hide-lil-gui-while-game-inactive
+
+
+status: ready for staging merge
+feature/npc-aggression-targeting
+
+
