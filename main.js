@@ -17,7 +17,11 @@ import { Lighting } from "./src/lighting.js";
 import { menuInit } from "./src/ui/MenuBuilder";
 import vertexShader from "./src/shaders/vertex.glsl?raw";
 import fragmentShader from "./src/shaders/fragment.glsl?raw";
-import { createMaterial, createTextForScene } from "./objectHelper";
+import {
+  createMaterial,
+  createTextForScene,
+  getObjectGlobalPosition,
+} from "./objectHelper";
 
 const wsUrl = import.meta.env?.VITE_WS_URL;
 
@@ -991,24 +995,19 @@ if (WebGL.isWebGL2Available()) {
     // @TODO: just some crazyiness here when attaching to the ship,
     // player movement speed cut down almsot down fold
     gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
-    console.log("player position camera",
-      gameState.playerObject.playerShip.position,
-    );
-    console.log("player position ship",
-      gameState.playerObject.position,
-    );
-    console.log("ship group",
-      shipPosition,
-    );
 
-
-    if (
-      shipPosition.distanceTo(gameState.playerObject.playerCamera.position) <
-      800
-    ) {
+    //validating player has selected a ship
+    // then calculate distancebased of a threshhold for attack distance
+    if (Object.keys(gameState.playerObject.playerShip).length) {
+      if (
+        shipPosition.distanceTo(
+          getObjectGlobalPosition(gameState.playerObject.playerShip),
+        ) < 2400
+      ) {
+      }
       const playerTargetAutomation = [
         shipPosition,
-        gameState.playerObject.playerCamera.position,
+        getObjectGlobalPosition(gameState.playerObject.playerShip),
       ];
       let playerCurve = AutomationUtils.createAutomationMovement(
         playerTargetAutomation,
