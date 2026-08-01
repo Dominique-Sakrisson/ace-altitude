@@ -1,4 +1,5 @@
-"use strict";import * as THREE from "three";
+"use strict";
+import * as THREE from "three";
 import "./style.css";
 import WebGL from "three/addons/capabilities/WebGL.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
@@ -7,6 +8,7 @@ import {
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
 import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
+import {CharacterCamera} from "./src/tools/camera/CharacterCamera";
 import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
@@ -40,21 +42,15 @@ const WORLD_SCALE = 0.1;
 if (WebGL.isWebGL2Available()) {
   const { canvas, renderer } = canvasSetup();
 
-  const fov = 65;
-  const aspect = window.innerWidth / window.innerHeight;
-  const near = 1;
-  const far = 6000;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  const camera = new CharacterCamera();
+  const cameraInstance = camera.getPlayerCamera();
 
-  camera.position.x = 0;
-  camera.position.y = -850;
-  camera.position.z = 500;
   const scene = new THREE.Scene();
 
   //make an initGameState() with all the options to set player controls, scene camera matrix, difficulty and level select etc
   const gameConfig = {
     window: window,
-    camera,
+    camera: cameraInstance,
     scene,
     canvas,
     renderer,
@@ -957,8 +953,8 @@ if (WebGL.isWebGL2Available()) {
     if (gameState.center) {
       //call function on playerObject that is a center function
       gameState.playerObject.centerAim();
-      camera.rotation.x = 0;
-      camera.rotation.z = 0;
+      gameState.playerObject.playerCamera.rotation.x = 0;
+      gameState.playerObject.playerCamera.rotation.z = 0;
       //reset local center state
       // center = false;
     }
@@ -985,7 +981,7 @@ if (WebGL.isWebGL2Available()) {
         gameState.playerObject.applyPlayerBoost().boostSpeed);
 
     const shipDirection = new THREE.Vector3();
-    camera.getWorldDirection(shipDirection);
+    gameState.playerObject.playerCamera.getWorldDirection(shipDirection);
 
     const deltaTime = time - lastTime;
     lastTime = time;
@@ -1072,8 +1068,8 @@ if (WebGL.isWebGL2Available()) {
 
     // 1. starts the scene rendering
     if (!gameState.getUserTitleMenu()) {
-      renderer.render(scene, camera);
-      cssRenderer.render(scene, camera);
+      renderer.render(scene, gameState.playerObject.playerCamera);
+      cssRenderer.render(scene, gameState.playerObject.playerCamera);
     }
   }
 
