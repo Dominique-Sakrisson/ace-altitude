@@ -133,4 +133,6 @@ status: ready for merge to staging
 history: design package for cameras creating character camera & others for cutscenes and camera controls
 branch: feature/camera-controls-class
 
-
+title: add max range to enemy aggression
+status: read for implementation
+branch: feature/npc-aggression-max-range
