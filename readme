@@ -137,3 +137,7 @@ title: add max range to enemy aggression
 status: work in progress
 history: ready for implementation
 branch: feature/npc-aggression-max-range
+
+title: improve multiplayer projectile tracking
+status: ready for merge
+branch: feature/multi-projectile-tracking
