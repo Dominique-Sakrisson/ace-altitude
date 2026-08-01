@@ -17,7 +17,11 @@ import { Lighting } from "./src/lighting.js";
 import { menuInit } from "./src/ui/MenuBuilder";
 import vertexShader from "./src/shaders/vertex.glsl?raw";
 import fragmentShader from "./src/shaders/fragment.glsl?raw";
-import { createMaterial, createTextForScene } from "./objectHelper";
+import {
+  createMaterial,
+  createTextForScene,
+  getObjectGlobalPosition,
+} from "./objectHelper";
 
 const wsUrl = import.meta.env?.VITE_WS_URL;
 
@@ -693,12 +697,14 @@ if (WebGL.isWebGL2Available()) {
     );
   }
 
-  function calculateShipSpeed(time) {
+  function calculateShipSpeed(time, targetting) {
+    let speedModifier = targetting ? 0.00035 : 0.001;
+    time *= speedModifier; // convert time to seconds
+    // time *= 0.001; // convert time to seconds
     // move spaceship
-    time *= 0.001; // convert time to seconds
     //because this is in the animation loop, each iteration will find a new point within the spline curve to adjust direction and orientation
     //updating the meta data for posiont and orientation
-    const shipTime = time * 0.003;
+    const shipTime = time * speedModifier;
     //affects how many points are calculated along the vector curve to set the position and orientation
     const shipSpeed = shipTime % 1;
     return shipSpeed;
@@ -987,9 +993,41 @@ if (WebGL.isWebGL2Available()) {
     //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class
     if (deltaTime >= 50) {
     }
+    // @TODO: just some crazyiness here when attaching to the ship,
+    // player movement speed cut down almsot down fold
     gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
 
-    calculateMovementAutomation(curve, calculateShipSpeed(time), shipPosition);
+    //validating player has selected a ship
+    // then calculate distancebased of a threshhold for attack distance
+    if (Object.keys(gameState.playerObject.playerShip).length) {
+      if (
+        shipPosition.distanceTo(
+          getObjectGlobalPosition(gameState.playerObject.playerShip),
+        ) < 1600
+      ) {
+      }
+      const playerTargetAutomation = [
+        shipPosition,
+        getObjectGlobalPosition(gameState.playerObject.playerShip).add(
+          new THREE.Vector3(200, 200, 200),
+        ),
+      ];
+      let playerCurve = AutomationUtils.createAutomationMovement(
+        playerTargetAutomation,
+      );
+
+      calculateMovementAutomation(
+        playerCurve,
+        calculateShipSpeed(time, true),
+        shipPosition,
+      );
+    } else {
+      calculateMovementAutomation(
+        curve,
+        calculateShipSpeed(time, false),
+        shipPosition,
+      );
+    }
     updateProgrammedCharacters(spaceShipGroup, "spaceShipGroup");
 
     // Calculate the direction vector from shipPosition to SHIP_TARGET
