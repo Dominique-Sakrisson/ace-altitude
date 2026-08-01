@@ -112,13 +112,24 @@ todos -- standalone branch, (wont merge to staging) managing project roadmap org
 
 @tickets
 
+title:Scene UI updates
 status: ready for staging merge
-feature/UI-updates
+branch: feature/UI-updates
+child branch: 
 -- feature/materials-tools
 ---- domsakrisson-hide-lil-gui-while-game-inactive
 
-
+title: NPC aggression & targeting
 status: ready for staging merge
-feature/npc-aggression-targeting
+branch: feature/npc-aggression-targeting
+
+title: player nearest enemy
+status: design - create a class for CombatSystem to do various metrics tracking between enemies in range of weapon, nearest, available for (future) targeted attacks
+branch: null  
+
+
+title: cameras directory
+status: design package for cameras creating character camera & others for cutscenes and camera controls
+branch: feature/camera-controls-class
 
 
