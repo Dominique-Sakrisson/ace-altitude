@@ -41,23 +41,17 @@ const WORLD_SCALE = 0.1;
 
 if (WebGL.isWebGL2Available()) {
   const { canvas, renderer } = canvasSetup();
-
-  const camera = new CharacterCamera();
-  const cameraInstance = camera.getPlayerCamera();
-
   const scene = new THREE.Scene();
 
   //make an initGameState() with all the options to set player controls, scene camera matrix, difficulty and level select etc
   const gameConfig = {
     window: window,
-    camera: cameraInstance,
     scene,
     canvas,
     renderer,
     socket,
   };
 
-  //
   const gameState = new GameState({ ...gameConfig });
   //arguments to toggle menu are the element to show, and the case in which the menu would be shown
   toggleMenu(
@@ -70,7 +64,6 @@ if (WebGL.isWebGL2Available()) {
   let localInventory = gameState.inventory;
   gameState.buildInventory(localInventory);
 
-  console.log(gameState.playerObject.playerCamera);
   menuInit(gameState);
 
   gameState.setupControls(); //controls bound to 2 different classes
