@@ -1,9 +1,9 @@
 import * as THREE from "three";export class CharacterCamera {
   constructor() {
-    this.fov = 60;
+    this.fov = 90;
     this.aspect = window.innerWidth / window.innerHeight;
     this.near = 1;
-    this.far = 3000;
+    this.far = 1800;
     this.playerCamera = this.setPlayerCamera();
   }
   setRaycaster(camera) {
