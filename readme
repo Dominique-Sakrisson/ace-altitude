@@ -134,5 +134,6 @@ history: design package for cameras creating character camera & others for cutsc
 branch: feature/camera-controls-class
 
 title: add max range to enemy aggression
-status: read for implementation
+status: work in progress
+history: ready for implementation
 branch: feature/npc-aggression-max-range
