@@ -129,7 +129,8 @@ branch: null
 
 
 title: cameras directory
-status: design package for cameras creating character camera & others for cutscenes and camera controls
+status: ready for merge to staging
+history: design package for cameras creating character camera & others for cutscenes and camera controls
 branch: feature/camera-controls-class
 
 
