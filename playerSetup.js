@@ -4,18 +4,17 @@ import { TinyWeapon } from "./src/weapons/tinyWeapon";
 import { Unarmed } from "./src/weapons/unarmed";
 import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
+import  {CharacterCamera}  from "./src/tools/camera/CharacterCamera"
 import * as dat from "lil-gui";
 
 export class PlayerSetup {
-  constructor(window, camera, socket) {
+  constructor(window, socket) {
     this.socket = socket;
     this.id = this.socket.id;
     this.pointer = new THREE.Vector2();
-    // this.raycaster = new THREE.Raycaster();
+    this.playerCamera = new CharacterCamera().getPlayerCamera();
     this.window = window;
     this.lookSensitivity = Math.PI / 24;
-    this.playerCamera = camera;
-    this.playerCamera.raycaster = new THREE.Raycaster();
     this.activeBoost = false;
     this.boostSpeed = 0.5;
     this.boostDuration = 2.5;
@@ -376,8 +375,7 @@ export class PlayerSetup {
   onMouseMove = (event) => {
     this.pointer.x = (event.clientX / this.window.innerWidth) * 2 - 1;
     this.pointer.y = -(event.clientY / this.window.innerHeight) * 2 + 1;
-    this.raycaster.setFromCamera(this.pointer, this.playerCamera);
-    const intersects = this.raycaster.intersectObjects(
+    const intersects = this.playerCamera.raycaster.intersectObjects(
       this.setCenterVision.children,
     );
   };

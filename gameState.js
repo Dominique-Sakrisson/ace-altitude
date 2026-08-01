@@ -29,9 +29,7 @@ export class GameState {
   constructor({
     lookSensitivity,
     boost,
-    // playerObject,
     window,
-    camera,
     scene,
     canvas,
     renderer,
@@ -59,7 +57,7 @@ export class GameState {
     this.interact = false;
     this.interacting = false;
     this.showInteract = false;
-    this.playerObject = new PlayerSetup(window, camera, this.socket);
+    this.playerObject = new PlayerSetup(window, this.socket);
     this.moveForward = false;
     this.moveBackward = false;
     this.moveLeft = false;
@@ -535,8 +533,8 @@ export class GameState {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
-      this.camera.aspect = window?.innerWidth / window?.innerHeight;
-      this.camera.updateProjectionMatrix();
+      this.playerObject.playerCamera.aspect = window?.innerWidth / window?.innerHeight;
+      this.playerObject.playerCamera.updateProjectionMatrix();
     });
   }
 
@@ -610,7 +608,7 @@ export class GameState {
     for (const particle of particles) {
       const pos = new THREE.Vector3();
       particle.terrainGroup.getWorldPosition(pos);
-      const dist = camera.position.distanceTo(pos);
+      const dist = this.playerObject.playerCamera.position.distanceTo(pos);
       if (dist < this.interactionDistance) {
         candidates.push(particle.terrainGroup);
       }
