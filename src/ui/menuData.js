@@ -114,6 +114,12 @@ export default {
   hud: {
     title: "toggle X",
     nodes: [
+      {element: "div", 
+        id: "frames",
+        textContent: "",
+        parent: "hud",
+        className: "frameCount"
+      },
       {
         element: "div", 
         id: "telemetry",
