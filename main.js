@@ -971,14 +971,12 @@ if (WebGL.isWebGL2Available()) {
         //reset local center state
         // center = false;
       }
-
       // const delta = clock.getDelta();
       for (let i = gameState.bloodSystems.length - 1; i >= 0; i--) {
         if (!gameState.bloodSystems[i].update(deltaTime)) {
           gameState.bloodSystems.splice(i, 1); // remove finished systems
         }
       }
-
       // / in your animation loop
       // const delta = clock.getDelta();
       for (let i = gameState.globeSystems?.length - 1; i >= 0; i--) {
@@ -1080,7 +1078,6 @@ if (WebGL.isWebGL2Available()) {
         }
       }
       gameState.wasInteracting = gameState.getInteracting();
-
       if (gameState.looper) {
         gameState.controls.enabled = false;
       } else {
