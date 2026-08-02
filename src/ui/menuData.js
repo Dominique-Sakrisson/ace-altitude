@@ -114,10 +114,18 @@ export default {
   hud: {
     title: "toggle X",
     nodes: [
-      {element: "div", 
+      {
+        element: "div", 
+        id: "telemetry",
+        textContent: "Telemetry",
+        parent: "inventoryDiv",
+        className: "telemetry"
+      },
+      {
+        element: "div", 
         id: "frames",
         textContent: "",
-        parent: "hud",
+        parent: "telemetry",
         className: "frameCount"
       },
       {
