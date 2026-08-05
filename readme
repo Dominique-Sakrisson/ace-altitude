@@ -143,6 +143,6 @@ status: ready for merge
 branch: feature/multi-projectile-tracking
 
 title: add fps controls and monitoring
-status: work in progress
+status: ready for merge to main.
 history: work in progress
 branch: feature/fps-render-controls
