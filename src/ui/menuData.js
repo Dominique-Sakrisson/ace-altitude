@@ -115,6 +115,20 @@ export default {
     title: "toggle X",
     nodes: [
       {
+        element: "div", 
+        id: "telemetry",
+        textContent: "Telemetry",
+        parent: "inventoryDiv",
+        className: "telemetry"
+      },
+      {
+        element: "div", 
+        id: "frames",
+        textContent: "",
+        parent: "telemetry",
+        className: "frameCount"
+      },
+      {
         element: "div",
         id: "reticle",
         textContent: ".",
