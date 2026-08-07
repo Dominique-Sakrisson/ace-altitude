@@ -364,7 +364,7 @@ export class GameState {
           this.playerObject.playerCamera,
           allObjects,
         );
-       
+
         if (this.targetingSystem.intersects.length) {
           const {
             target,
@@ -533,7 +533,8 @@ export class GameState {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
-      this.playerObject.playerCamera.aspect = window?.innerWidth / window?.innerHeight;
+      this.playerObject.playerCamera.aspect =
+        window?.innerWidth / window?.innerHeight;
       this.playerObject.playerCamera.updateProjectionMatrix();
     });
   }
@@ -896,6 +897,16 @@ export class GameState {
       }
       if (event.code === "KeyV") {
         event.preventDefault();
+        //check that a playerShip hasnt been instantiated
+        if (this.selectedShip && !this.playerObject.playerShip.distance) {
+          console.log(this.playerObject.playerShip);
+          this.confirmSelectedShip();
+          document.querySelectorAll(".hudControls").forEach((el) => {
+            if (el.id !== "hudUnarmed") {
+              el.style.display = "block";
+            }
+          });
+        }
         this.setSelectedObject(event);
         const inRange =
           this.selectedObject?.distance <= this.interactionDistance;

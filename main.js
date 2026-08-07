@@ -582,14 +582,9 @@ if (WebGL.isWebGL2Available()) {
 
   function showMouseTip() {
     toolTip.innerHTML = `
-    Being in Orbit is better in a ship 
-    <br/>
-    <br/>
-    Use the mouse to point at a ship you want until it turns gold!
-    <br />
-    <br />
-    To stabilize your vision press "h" on your keyboard,
-    Then click here to hop in!`;
+    Look at a ship, and press V to interact
+    To stabilize your vision press H,
+    `;
 
     if (!gameState.playerObject.playerShip.position) {
       toolTip.style.display = "block";
@@ -598,15 +593,16 @@ if (WebGL.isWebGL2Available()) {
       toolTip.style.display = "none";
     }
     toolTip.style.background = "red";
-    toolTip.onclick = (event) => {
-      if (gameState.selectAbleShips.length && gameState.selectedShip)
-        gameState.confirmSelectedShip();
-      document.querySelectorAll(".hudControls").forEach((el) => {
-        if (el.id !== "hudUnarmed") {
-          el.style.display = "block";
-        }
-      });
-    };
+
+    // toolTip.onclick = (event) => {
+    //   if (gameState.selectAbleShips.length && gameState.selectedShip)
+    //     gameState.confirmSelectedShip();
+    //   document.querySelectorAll(".hudControls").forEach((el) => {
+    //     if (el.id !== "hudUnarmed") {
+    //       el.style.display = "block";
+    //     }
+    //   });
+    // };
   }
 
   function showMoveTip() {
@@ -623,15 +619,16 @@ if (WebGL.isWebGL2Available()) {
       return true;
     }
     toolTip.style.background = "red";
-    toolTip.onclick = (event) => {
-      if (gameState.selectAbleShips.length && gameState.selectedShip)
-        gameState.confirmSelectedShip();
-      document.querySelectorAll(".hudControls").forEach((el) => {
-        if (el.id !== "hudUnarmed") {
-          el.style.display = "block";
-        }
-      });
-    };
+
+    // toolTip.onclick = (event) => {
+    //   if (gameState.selectAbleShips.length && gameState.selectedShip)
+    //     gameState.confirmSelectedShip();
+    //   document.querySelectorAll(".hudControls").forEach((el) => {
+    //     if (el.id !== "hudUnarmed") {
+    //       el.style.display = "block";
+    //     }
+    //   });
+    // };
   }
 
   function updateGameState() {

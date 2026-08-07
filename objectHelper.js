@@ -12,7 +12,7 @@ export function addObject(x, y, obj) {
 }
 
 export function getObjectGlobalPosition(obj) {
-  console.log({obj});
+  
   if (!obj.position) {
     return null;
   }

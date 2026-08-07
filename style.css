@@ -233,8 +233,8 @@ video {
 }
 #toolTip {
   position: absolute;
-  top: 60%;
-  left: 43%;
+  bottom: 0%;
+  left: 0%;
   color: white;
   /* transform: translate(-50%, -50%); */
   width: 20rem; /* Outer circle size
