@@ -283,11 +283,12 @@ label {
 }
 
 #inventoryDiv {
-  display: none; /* no quotes */
-  position: absolute;
+  display: flex; /* no quotes */
+  /* position: absolute; */
+  padding: 0;
   color: red;
   width: 40%;
-  height: 80%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.3);
   z-index: 1;
   h3 {
@@ -298,15 +299,16 @@ label {
 #inventory {
   display: flex;
   z-index: 1;
-  width: 30%;
+  width: 38%;
   height: 40%;
   border: 1px solid white;
-  list-style: none;
-  padding: 0px;
-  margin: 0px;
-  justify-content: space-evenly;
 }
-
+.telemetry{
+  position: absolute;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+}
 .slot {
   display: flex;
   justify-content: space-around;
