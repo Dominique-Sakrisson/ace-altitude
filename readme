@@ -148,7 +148,7 @@ history: ready for merge to staging.
 -- work in progress
 branch: feature/fps-render-controls
 
-title: add fps controls and monitoring
-status: ready for merge to main.
-history: work in progress
-branch: feature/fps-render-controls
+title: inventory fix
+status: work in progress
+history: none
+branch: feature/inventory-system-fix
