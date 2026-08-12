@@ -151,3 +151,9 @@ title:fix inventory
 status:worrking on implementation
 history: none
 branch:feature/inventory-system-fix
+
+title: ship selection
+status:worrking on implementation
+history: none
+branch:feature/ship-selection-features
+
