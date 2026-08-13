@@ -91,6 +91,7 @@ export class GameState {
       renderer.domElement,
     );
     (this.activeShots = []), (this.mapBuilder = new MapBuilder(this));
+    this.activeCards = [];
     this.inventorySystem = new InventorySystem(3, 3);
     this.inventoryDisplay = false;
     this.inventory = [
@@ -364,7 +365,7 @@ export class GameState {
           this.playerObject.playerCamera,
           allObjects,
         );
-       
+
         if (this.targetingSystem.intersects.length) {
           const {
             target,
@@ -533,7 +534,8 @@ export class GameState {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
-      this.playerObject.playerCamera.aspect = window?.innerWidth / window?.innerHeight;
+      this.playerObject.playerCamera.aspect =
+        window?.innerWidth / window?.innerHeight;
       this.playerObject.playerCamera.updateProjectionMatrix();
     });
   }
@@ -596,6 +598,78 @@ export class GameState {
   isASCII(str) {
     // Regular expression to match only characters within the standard ASCII range (0x00-0x7F)
     return /^[\x00-\x7F]*$/.test(str);
+  }
+
+  buildShipCard() {
+    const { x, y, z } = this.selectedObject.object.parent.position;
+
+    const shipStats = this.selectedObject.object.parent.shipStats;
+    const geometry = new THREE.PlaneGeometry(100, 250);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 100;
+    canvas.height = 250;
+    const ctx = canvas.getContext("2d");
+
+    //1 bar for a stat
+    const maxWidthFill = 75;
+    const maxDurability = 300;
+    const maxRepair = 10;
+    const maxShield = 100;
+    const maxSpeed = 20;
+    const maxWeapon = 100;
+    // Set line width
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#228b22";
+    ctx.lineJoin = "bevel";
+
+    ctx.fillStyle = "white";
+    ctx.fillText(shipStats.name, 10, 10, 75);
+    ctx.fillText("durability", 10, 30, 75);
+    ctx.fillText("repair", 10, 75, 75);
+    ctx.fillText("shield", 10, 120, 75);
+    ctx.fillText("speed", 10, 165, 75);
+    ctx.fillText("weapon", 10, 210, 75);
+
+    ctx.fillStyle = "green";
+    ctx.fillRect(10, 45, (75 / maxDurability) * shipStats.durability, 15);
+    ctx.strokeRect(10, 45, 75, 15);
+    ctx.fillRect(10, 90, (75 / maxRepair) * shipStats.repair, 15);
+    ctx.strokeRect(10, 90, 75, 15);
+    ctx.fillRect(10, 135, (75 / maxShield) * shipStats.shield, 15);
+    ctx.strokeRect(10, 135, 75, 15);
+    ctx.fillRect(10, 180, (75 / maxSpeed) * shipStats.speed, 15);
+    ctx.strokeRect(10, 180, 75, 15);
+    ctx.fillRect(10, 225, (75 / maxWeapon) * shipStats.weapon, 15);
+    ctx.strokeRect(10, 225, 75, 15);
+
+    const canvasTexture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({
+      map: canvasTexture,
+      side: THREE.DoubleSide,
+      transparent: false,
+    });
+
+    // 3. Mesh and Scene Addition
+    const plane = new THREE.Mesh(geometry, material);
+    plane.name = `${shipStats.name}-card`;
+    plane.position.x = x + 125;
+    plane.position.y = y + 100;
+    plane.position.z = z + 100;
+    this.activeCards.push(plane);
+    this.scene.add(plane);
+  }
+  checkAndShowShipInfo() {
+    const { x, y, z } = this.selectedObject.object.parent.position;
+    const shipStats = this.selectedObject.object.parent.shipStats;
+    const cardCheck = this.scene.children.filter(
+      (item) => item.name === `${shipStats.name}-card`,
+    );
+    if (cardCheck.length >= 1) {
+      return;
+    } else {
+      this.buildShipCard();
+    }
   }
 
   //interacts with particles, on the globeSystems
@@ -711,6 +785,7 @@ export class GameState {
       if (!this.eventValidator.mouseMoveEvent(event)) {
         return;
       }
+      //mousemove while player has ship
       if (this.playerObject.playerShip.position) {
         const { raycaster } = this.playerObject.playerCamera;
         const targetPosition =
@@ -730,6 +805,7 @@ export class GameState {
         }
       }
       this.setSelectedObject(event);
+      //highlighting the ship choice when player looks at it
       if (
         this.selectedObject &&
         this.selectAbleShips.length &&
@@ -738,6 +814,7 @@ export class GameState {
         )
       ) {
         this.selectedShip = this.selectedObject;
+        this.checkAndShowShipInfo();
       }
       const inRange = this.selectedObject?.distance <= this.interactionDistance;
       this.showInteract = false;
@@ -1074,8 +1151,21 @@ export class GameState {
       document.getElementById("hudDist").innerHTML = `Distance \n  ${0}`;
     }
   }
+  removeShipCards() {
+    const cards = this.scene.children.filter((item) => {
+      return item.name.includes("card");
+    });
+    cards.map((card) => this.scene.remove(card));
+  }
   confirmSelectedShip() {
     this.playerObject.setPlayerShip(this.selectedShip);
+    this.removeShipCards();
+    const DEFAULT_ROLLSPEED = 24;
+    const moveSpeed = Math.PI / DEFAULT_ROLLSPEED;
+    this.moveSpeed =
+      moveSpeed + this.playerObject.playerShip.object.parent.shipStats.speed;
+    this.controls.movementSpeed =
+      moveSpeed + this.playerObject.playerShip.object.parent.shipStats.speed;
     this.reloadSound.stop();
     this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
     this.reloadSound.stop();
@@ -1145,7 +1235,6 @@ export class GameState {
       marker.scale.set(1 / parentScale.x, 1 / parentScale.y, 1 / parentScale.z);
       return marker;
     } else {
-      console.log("some bs", this.selectedObject);
     }
   }
 }

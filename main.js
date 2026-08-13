@@ -7,7 +7,7 @@ import {
   CSS3DRenderer,
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
-import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
+import { assembleBasicShip, assembleSpeedShip, updateGradient } from "./basicSpaceShip";
 import {CharacterCamera} from "./src/tools/camera/CharacterCamera";
 import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
@@ -152,11 +152,12 @@ if (WebGL.isWebGL2Available()) {
   });
   secondShip.isInteractable = true;
   secondShip.rotation.x = 100;
-  const thirdShip = assembleBasicShip("target ship", {
+  const thirdShip = assembleSpeedShip("target ship", {
     x: 263,
     y: -770,
     z: 140,
   });
+  console.log({thirdShip});
   thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
@@ -882,6 +883,11 @@ if (WebGL.isWebGL2Available()) {
     practice.rotation.x += 0.01;
     updateGameState();
     // updateProjectiles();
+
+
+  console.log(gameState.controls);
+
+
 
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
