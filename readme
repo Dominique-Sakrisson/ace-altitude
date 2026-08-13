@@ -157,3 +157,14 @@ title: update-ship-boarding
 status: work in progress
 history: none
 branch: feature/interact-to-board-ship
+
+title:fix inventory 
+status:worrking on implementation
+history: none
+branch:feature/inventory-system-fix
+
+title: ship selection
+status:worrking on implementation
+history: none
+branch:feature/ship-selection-features
+

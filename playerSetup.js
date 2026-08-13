@@ -129,8 +129,6 @@ export class PlayerSetup {
   //   return true;
   // }
   swapWeapon() {
-    console.log("hello");
-    console.log(this.currentWeapon, "current");
     if (this.currentWeapon === this.weapon) {
       this.currentWeapon = this.weapon2;
       return;
@@ -146,11 +144,18 @@ export class PlayerSetup {
     ship.object.parent.rotation.z = 0;
     return ship;
   }
+  mergeShipStats(){
+    const shipStats = this.playerShip.object.parent.shipStats;
+    this.moveSpeed += shipStats.speed;
+    this.shield = shipStats.shield;
+    this.durability = shipStats.durability
+    this.repair = shipStats.repair;
+  }
   setPlayerShip(ship) {
     this.playerShip = {};
-    console.log(ship);
     let newShip = this.orientNewShip(ship);
     this.playerShip = newShip;
+    this.mergeShipStats();
     this.playerCamera.add(this.playerShip.object.parent);
     const { x, y, z } = this.playerCamera.getWorldPosition(new THREE.Vector3());
 

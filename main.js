@@ -7,7 +7,7 @@ import {
   CSS3DRenderer,
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
-import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
+import { assembleBasicShip, assembleSpeedShip, updateGradient } from "./basicSpaceShip";
 import {CharacterCamera} from "./src/tools/camera/CharacterCamera";
 import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
@@ -152,11 +152,12 @@ if (WebGL.isWebGL2Available()) {
   });
   secondShip.isInteractable = true;
   secondShip.rotation.x = 100;
-  const thirdShip = assembleBasicShip("target ship", {
+  const thirdShip = assembleSpeedShip("target ship", {
     x: 263,
     y: -770,
     z: 140,
   });
+  console.log({thirdShip});
   thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
@@ -880,6 +881,11 @@ if (WebGL.isWebGL2Available()) {
     updateGameState();
     // updateProjectiles();
 
+
+  console.log(gameState.controls);
+
+
+
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
       // if(!gameState.reloadSound.isPlaying){
@@ -968,14 +974,12 @@ if (WebGL.isWebGL2Available()) {
         //reset local center state
         // center = false;
       }
-
       // const delta = clock.getDelta();
       for (let i = gameState.bloodSystems.length - 1; i >= 0; i--) {
         if (!gameState.bloodSystems[i].update(deltaTime)) {
           gameState.bloodSystems.splice(i, 1); // remove finished systems
         }
       }
-
       // / in your animation loop
       // const delta = clock.getDelta();
       for (let i = gameState.globeSystems?.length - 1; i >= 0; i--) {
@@ -1077,7 +1081,6 @@ if (WebGL.isWebGL2Available()) {
         }
       }
       gameState.wasInteracting = gameState.getInteracting();
-
       if (gameState.looper) {
         gameState.controls.enabled = false;
       } else {
