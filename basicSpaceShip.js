@@ -89,8 +89,8 @@ export function assembleBasicShip(
   const boxWidth = 2;
   const boxHeight = 1;
   const boxDepth = 3;
-  const shipTexture = shipLoader.load("/shipTexture.jpg");
-  const flameTexture = shipLoader.load("/fire.png");
+  const shipTexture = shipLoader.load("./shipTexture.jpg");
+  const flameTexture = shipLoader.load("./fire.png");
   const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
   const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
 
@@ -209,8 +209,8 @@ export function assembleSpeedShip(
   const boxWidth = 2;
   const boxHeight = 1;
   const boxDepth = 3;
-  const shipTexture = shipLoader.load("/shipTexture.jpg");
-  const flameTexture = shipLoader.load("/fire.png");
+  const shipTexture = shipLoader.load("./shipTexture.jpg");
+  const flameTexture = shipLoader.load("./fire.png");
   const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
   const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
   const { x, y, z } = spawnPosition;

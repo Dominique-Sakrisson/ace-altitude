@@ -372,7 +372,7 @@ if (WebGL.isWebGL2Available()) {
         "./models/missile/AIM120D.obj",
         function (object) {
           const textureLoader = new THREE.TextureLoader();
-          const texture = textureLoader.load("models/missile/texture.png.png"); // Use your texture path here
+          const texture = textureLoader.load("./models/missile/texture.png"); // Use your texture path here
           object.traverse((child) => {
             if (child.isMesh) {
               child.material.map = texture; // Apply texture to all mesh materials
