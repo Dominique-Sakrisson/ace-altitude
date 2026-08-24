@@ -1,86 +1,89 @@
-##  Play a single player mode from the link 
+## Play a single player mode from the link
 - https://dominique-sakrisson.github.io/ace-altitude/
 
 # This is as always a work in progress.
 
 ## Project can be run locally over your network for multiplayer experience with other clients on your network.
+
 ## This guide assumes you're on a windows machine version 10 or higher
+
 ## Before attempting to play have required tooling installed on your system:
-1. git 
+
+1. git
 1. nodejs
 1. npm
 1. vite deploy tool
 
+# The game can be cloned and setup to run from your local machine multiple ways for varying purposes.
 
-
-# The game can be cloned and setup to run from your local machine multiple ways for varying purposes. 
 1. Single client, 1 locally running instance.
 1. Multiple local clients connected via web socket, 1 locally running instance. (Mainly for testing purposes)
 1. Multiple local network clients connected via web socket and local area connection.
 1. Multiple public clients, 1 locally running instance broadcast with public IP address over the internet. (slow for others, based on distance )
 
-
 # First clone and setup the project locally
+
 1. clone github repo
 
 1. In powershell etc. from the project root run command :
 
 ```
-C:/u/project-location: 
+C:/u/project-location:
 
 npm install
 ```
 
-
 ## For quick and dirty local single-player development start the server with command
 
 ```
-C:/u/project-location: 
+C:/u/project-location:
 
 npx vite
 ```
 
-
 # The game can run multiple clients on the same machine with this process below. (for testing purposes)
 
-## In powershell:  Sets value in .env for the websocket server connection
+## In powershell: Sets value in .env for the websocket server connection
+
 ```
-C:/u/project-location: 
+C:/u/project-location:
 
 Add-Content -Path ".\.env" -Value "VITE_WS_URL = http://localhost:3000/"
 ```
 
-## Creates application bundle for the soon-to-be-run nodejs  server
+## Creates application bundle for the soon-to-be-run nodejs server
 
 ```
-C:/u/project-location: 
+C:/u/project-location:
 
 npx vite build
 ```
 
 ## Serve with local nodejs server
+
 ```
-C:/u/project-location/server: 
+C:/u/project-location/server:
 
 npx vite build
 ```
 
-
 # Setup for multiple clients on local network
- - (Assumes the project has been setup with the .env file for the websocket connection address)
+
+- (Assumes the project has been setup with the .env file for the websocket connection address)
+
 1. Open your windows powershell, etc
 
-1. run vite development with the host flag 
-    ```
-    C:/u/project-location/server: 
-    npx vite --host 
-    ```
-    - console should display addresses to connect from
+1. run vite development with the host flag
+
+   ```
+   C:/u/project-location/server:
+   npx vite --host
+   ```
+
+   - console should display addresses to connect from
 
 1. In your web browser of choice enter that address.
 1. Each other player may now connect via that same address.
-
-
 
 ## Helpful sources for related resources used building project with nodejs
 
@@ -95,10 +98,10 @@ http://localhost:5173/
 https://free3d.com/3d-model/aim-120d-missile-air-to-air-20348.html
 https://threejs.org/manual/#en/fundamentals
 
-
-
 ## Some old notes (mostly to be ignored)
+
 ### TO DO"S
+
 //events have a timestamp that should be stored to be checked against the last event of that type.
 if the difference is more than or equal to the the character.weapon.attackSpeed that means the weapon ishasnt been shot since then and can be fired again.
 
@@ -122,42 +125,42 @@ Gamestate should track some config for level design
 
 https://adndevblog.typepad.com/cloud_and_mobile/2015/07/embedding-webpages-in-a-3d-threejs-scene.html
 
-
 sources
-567308__bigdino1995__plasmacannon
+567308**bigdino1995**plasmacannon
 https://freesound.org/people/BigDino1995/sounds/569903/
 
-829895__akkaittou__musiclooptension3
+829895**akkaittou**musiclooptension3
 https://freesound.org/people/Akkaittou/sounds/829895/
 
 longReloadBasic.wav
 shortReloadBasic.wav
 slowStrongShot.wav
 https://freesound.org/people/GreenFireSound/sounds/484115/
-
-
 # Branch strategy
+```
 
-## main 
+## main
+
 - deployed branch
-## staging 
+
+## staging
+
 - testing completed features
 
-## feature branch 
+## feature branch
+
 - top level branch for new work implementations awaiting official staging test runs
 
-## todos (largely now managed within this readme file) 
+## todos (largely now managed within this readme file)
 
-- standalone branch, (wont merge to staging) 
-- managing project roadmap organized within the todo's folder 
+- standalone branch, (wont merge to staging)
+- managing project roadmap organized within the todo's folder
 - broken down to hierarchical readme's (mechanics, level design, character design, etc)
-
-
-
+```
 
 ## tickets
 
-``` 
+```
 title: Scene UI updates
 status: ready for staging merge
 branch: feature/UI-updates
@@ -170,28 +173,33 @@ title: NPC aggression & targeting
 status: ready for staging merge
 branch: feature/npc-aggression-targeting
 ```
+
 ```
 title: player nearest enemy
 status: design - create a class for CombatSystem to do various metrics tracking between enemies in range of weapon, nearest, available for (future) targeted attacks
-branch: null  
+branch: null
 ```
+
 ```
 title: cameras directory
 status: ready for merge to staging
 history: design package for cameras creating character camera & others for cutscenes and camera controls
 branch: feature/camera-controls-class
 ```
+
 ```
 title: add max range to enemy aggression
 status: work in progress
 history: ready for implementation
 branch: feature/npc-aggression-max-range
 ```
+
 ```
 title: improve multiplayer projectile tracking
 status: ready for merge
 branch: feature/multi-projectile-tracking
 ```
+
 ```
 title: add fps controls and monitoring
 status: merged to staging
@@ -199,27 +207,49 @@ history: ready for merge to staging.
 -- work in progress
 branch: feature/fps-render-controls
 ```
+
 ```
 title: inventory fix
 status: work in progress
 history: none
 branch: feature/inventory-system-fix
 ```
+
 ```
 title: update-ship-boarding
 status: work in progress
 history: none
 branch: feature/interact-to-board-ship
 ```
+
 ```
-title:fix inventory 
+title:fix inventory
 status:worrking on implementation
 history: none
 branch:feature/inventory-system-fix
 ```
+
 ```
 title: ship selection
 status:worrking on implementation
 history: none
 branch:feature/ship-selection-features
+```
+
+## new feature desgin idea
+
+```
+once a ship is selected,  there is a flash of red added around the other ships one couldve chose.
+The camera and controls freeze with a pop up saying to fight these ships as their onboard guidance systesm have been compromised by rogue ai's.
+Add a 3 seconds timer countdown and a button to be pressed in order to reactivate controls.
+
+--features to implement
+	proper edge highliting of ships
+        - gameState.addHalo() already has the required implementation, currently requires optimization to stop creating thousands of layered meshes for the glow effect.
+		- possible custom shader implementation practice for nice custom outlines
+	implement proper health check
+		-ships durability rating should be surfaced and used as health
+		- ships targting player should periodically fire at the player, accuracy will be given be a random roll, given a variance of distance from the player center (their current target) target = new vector (target.pos.(...xyz* Math.random(40) * 100)) this point should be the direction of their shots
+		- once damage is done in equal or excess to durability destroy ship
+
 ```
