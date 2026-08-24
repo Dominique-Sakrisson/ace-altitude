@@ -11,6 +11,16 @@ export function addObject(x, y, obj) {
   objects.push(obj);
 }
 
+export function getObjectGlobalPosition(obj) {
+  
+  if (!obj.position) {
+    return null;
+  }
+  if (Object.keys(obj.object)) {
+    return obj.object.parent.getWorldPosition(new THREE.Vector3());
+  }
+  return obj.getWorldPosition(new THREE.Vector3());
+}
 // Generate initial terrain for planetary objects
 // Applies Perlin noise for lumpy terrain (INCREASED DISPLACEMENT)
 export function generateTerrain(vertices, noise, sphere) {
@@ -58,9 +68,9 @@ export function morphObject(time, vertices, noise, sphere) {
  * createBullet(camera, scene, shots)
  */
 export function createBullet(camera, scene, shots, pos) {
-  const length =5,
-    width =5,
-    depth =5;
+  const length = 5,
+    width = 5,
+    depth = 5;
   const textureLoader = new THREE.TextureLoader();
 
   const bullet = new THREE.SphereGeometry(length, width, depth);
@@ -128,6 +138,7 @@ export function createBullet(camera, scene, shots, pos) {
   const mesh = new THREE.Mesh(bullet, createMaterial());
   const flameMesh = new THREE.Mesh(bullet, flameMaterial);
   const projectileGroup = new THREE.Group();
+  projectileGroup.isInteractable = false;
   const worldPos = new THREE.Vector3();
   const worldDirection = new THREE.Vector3();
   camera.updateMatrixWorld(true);
@@ -158,7 +169,7 @@ export function createBullet(camera, scene, shots, pos) {
   if (pos.group) {
     projectileGroup.position.x = x;
     projectileGroup.position.y = y - 50;
-    projectileGroup.position.z = z -250;
+    projectileGroup.position.z = z - 250;
   } else {
     projectileGroup.position.x = x;
     projectileGroup.position.y = y;
@@ -247,7 +258,7 @@ export function createBulletFromData(scene, shots, pos) {
   const flameMesh = new THREE.Mesh(bullet, flameMaterial);
 
   const projectileGroup = new THREE.Group();
-
+  projectileGroup.isInteractable = false;
   // Ensure cameraPos and cameraDir are THREE.Vector3
   const spawnPos = pos.cameraPos.clone();
   const dir = pos.cameraDir.clone().normalize();

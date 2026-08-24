@@ -4,18 +4,17 @@ import { TinyWeapon } from "./src/weapons/tinyWeapon";
 import { Unarmed } from "./src/weapons/unarmed";
 import { Boost } from "./enhancements/boost";
 import { MapBuilder } from "./mapBuilder";
+import  {CharacterCamera}  from "./src/tools/camera/CharacterCamera"
 import * as dat from "lil-gui";
 
 export class PlayerSetup {
-  constructor(window, camera, socket) {
+  constructor(window, socket) {
     this.socket = socket;
     this.id = this.socket.id;
     this.pointer = new THREE.Vector2();
-    // this.raycaster = new THREE.Raycaster();
+    this.playerCamera = new CharacterCamera().getPlayerCamera();
     this.window = window;
     this.lookSensitivity = Math.PI / 24;
-    this.playerCamera = camera;
-    this.playerCamera.raycaster = new THREE.Raycaster();
     this.activeBoost = false;
     this.boostSpeed = 0.5;
     this.boostDuration = 2.5;
@@ -130,8 +129,6 @@ export class PlayerSetup {
   //   return true;
   // }
   swapWeapon() {
-    console.log("hello");
-    console.log(this.currentWeapon, "current");
     if (this.currentWeapon === this.weapon) {
       this.currentWeapon = this.weapon2;
       return;
@@ -147,11 +144,18 @@ export class PlayerSetup {
     ship.object.parent.rotation.z = 0;
     return ship;
   }
+  mergeShipStats(){
+    const shipStats = this.playerShip.object.parent.shipStats;
+    this.moveSpeed += shipStats.speed;
+    this.shield = shipStats.shield;
+    this.durability = shipStats.durability
+    this.repair = shipStats.repair;
+  }
   setPlayerShip(ship) {
     this.playerShip = {};
-    console.log(ship);
     let newShip = this.orientNewShip(ship);
     this.playerShip = newShip;
+    this.mergeShipStats();
     this.playerCamera.add(this.playerShip.object.parent);
     const { x, y, z } = this.playerCamera.getWorldPosition(new THREE.Vector3());
 
@@ -163,6 +167,7 @@ export class PlayerSetup {
     this.playerShip.object.parent.rotation.z = 3.15;
 
     const group = new THREE.Group();
+    group.isInteractable = false;
     group.add(this.playerCamera);
 
     this.playerShip.group = group;
@@ -245,7 +250,6 @@ export class PlayerSetup {
       const SEND_RATE = 20; // Hz
       this._lastSend ??= 0;
 
-      console.log(this.playerShip, "local rotation");
       if (this.playerShip.group && this.socket.id && this.playerObject) {
         const position = this.playerObject.playerCamera.getWorldPosition(
           new THREE.Vector3(),
@@ -376,8 +380,7 @@ export class PlayerSetup {
   onMouseMove = (event) => {
     this.pointer.x = (event.clientX / this.window.innerWidth) * 2 - 1;
     this.pointer.y = -(event.clientY / this.window.innerHeight) * 2 + 1;
-    this.raycaster.setFromCamera(this.pointer, this.playerCamera);
-    const intersects = this.raycaster.intersectObjects(
+    const intersects = this.playerCamera.raycaster.intersectObjects(
       this.setCenterVision.children,
     );
   };

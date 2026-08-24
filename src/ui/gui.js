@@ -33,13 +33,6 @@ export function initGui({ spaceShipGroup, gameState }) {
       spaceShipGroup.position.z = value;
       // updateCameraPosition();
     });
-  gui
-    .add(spaceShipPositionGUIHelper, "z", -100, 100, 0.1)
-    .name("Ship Z")
-    .onChange((value) => {
-      spaceShipGroup.position.z = value;
-      // updateCameraPosition();
-    });
 
   return gui;
 }

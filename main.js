@@ -1,4 +1,5 @@
-"use strict";import * as THREE from "three";
+"use strict";
+import * as THREE from "three";
 import "./style.css";
 import WebGL from "three/addons/capabilities/WebGL.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
@@ -6,7 +7,12 @@ import {
   CSS3DRenderer,
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
-import { assembleBasicShip, updateGradient } from "./basicSpaceShip";
+import {
+  assembleBasicShip,
+  assembleSpeedShip,
+  updateGradient,
+} from "./basicSpaceShip";
+import { CharacterCamera } from "./src/tools/camera/CharacterCamera";
 import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
@@ -17,42 +23,38 @@ import { Lighting } from "./src/lighting.js";
 import { menuInit } from "./src/ui/MenuBuilder";
 import vertexShader from "./src/shaders/vertex.glsl?raw";
 import fragmentShader from "./src/shaders/fragment.glsl?raw";
-import { createMaterial, createTextForScene } from "./objectHelper";
+import {
+  createMaterial,
+  createTextForScene,
+  getObjectGlobalPosition,
+} from "./objectHelper";
 
-// client/main.js
-import { io } from "socket.io-client";
-const socket = io("http://localhost:3000", {
-  transports: ["websocket"],
-  withCredentials: true,
-}); // your Node.js server
+// const wsUrl = import.meta.env?.VITE_WS_URL;
+// import { io } from "socket.io-client";
+let socket = {};
+// if (wsUrl) {
+//   // client/main.js
+//   socket = io("http://localhost:3000", {
+//     transports: ["websocket"],
+//     withCredentials: true,
+//   }); // your Node.js server
+// }
 
 const WORLD_SCALE = 0.1;
 
 if (WebGL.isWebGL2Available()) {
   const { canvas, renderer } = canvasSetup();
-
-  const fov = 65;
-  const aspect = window.innerWidth / window.innerHeight;
-  const near = 1;
-  const far = 6000;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-
-  camera.position.x = 0;
-  camera.position.y = -850;
-  camera.position.z = 500;
   const scene = new THREE.Scene();
 
   //make an initGameState() with all the options to set player controls, scene camera matrix, difficulty and level select etc
   const gameConfig = {
     window: window,
-    camera,
     scene,
     canvas,
     renderer,
     socket,
   };
 
-  //
   const gameState = new GameState({ ...gameConfig });
   //arguments to toggle menu are the element to show, and the case in which the menu would be shown
   toggleMenu(
@@ -65,7 +67,6 @@ if (WebGL.isWebGL2Available()) {
   let localInventory = gameState.inventory;
   gameState.buildInventory(localInventory);
 
-  console.log(gameState.playerObject.playerCamera);
   menuInit(gameState);
 
   gameState.setupControls(); //controls bound to 2 different classes
@@ -148,24 +149,27 @@ if (WebGL.isWebGL2Available()) {
   spaceShipGroup.add(gameState.engineSound);
 
   const secondShip = assembleBasicShip("target ship", {
-    x: 0,
-    y: -950,
-    z: -150,
+    x: -205,
+    y: -844,
+    z: 140,
   });
+  secondShip.isInteractable = true;
   secondShip.rotation.x = 100;
-  const thirdShip = assembleBasicShip("target ship", {
-    x: -150,
-    y: -950,
-    z: 100,
+  const thirdShip = assembleSpeedShip("target ship", {
+    x: 263,
+    y: -770,
+    z: 140,
   });
+  thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
 
   const fourthShip = assembleBasicShip("target ship", {
-    x: 150,
-    y: -950,
-    z: 100,
+    x: 17,
+    y: -824,
+    z: 115,
   });
+  fourthShip.isInteractable = true;
   fourthShip.rotation.x = -100;
   fourthShip.rotation.y = -100;
 
@@ -186,11 +190,11 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
-  const gui = initGui(toggles);
+  // const gui = initGui(toggles);
 
-  gui.addFolder("player Controls");
+  // gui.addFolder("player Controls");
 
-  let guiAdd = false;
+  // let guiAdd = false;
 
   renderer.domElement.style.margin = "0";
   renderer.domElement.style.padding = "0";
@@ -213,62 +217,13 @@ if (WebGL.isWebGL2Available()) {
   const boxWidth = 2;
   const boxHeight = 1;
   const boxDepth = 3;
-
   const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
   const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
 
-  function generateMetalWallTexture(width = 512, height = 512) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-
-    // Base fill (steel gray)
-    ctx.fillStyle = "#999";
-    ctx.fillRect(0, 0, width, height);
-
-    // Add brushed streaks
-    for (let y = 0; y < height; y++) {
-      const alpha = Math.random() * 0.2;
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    // Add vertical panel divisions
-    ctx.strokeStyle = "rgba(40,40,40,0.8)";
-    ctx.lineWidth = 4;
-    for (let x = width / 4; x < width; x += width / 4) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.needsUpdate = true;
-
-    return texture;
-  }
-
   scene.background = mapBuilder.buildSkybox();
-  const flatTerrain = await mapBuilder.buildFlatTerrain(
-    500,
-    3,
-    500,
-    generateMetalWallTexture(),
-  );
-  const wall = await mapBuilder.buildFlatTerrain(
-    1000,
-    1000,
-    3,
-    generateMetalWallTexture(),
-    100,
-    100,
-  );
+
+  //in game platform surrounding the ships
+  const prefabHanger = await mapBuilder.generatePreFabHanger();
   const heightTerrain = await mapBuilder.buildGlobe(2000, 64, 64);
 
   function position(object, cords) {
@@ -291,14 +246,13 @@ if (WebGL.isWebGL2Available()) {
   scene.add(practice);
 
   position(practice, { x: 0, y: -800, z: -6520 });
-  position(flatTerrain.groundMesh, { x: 0, y: -1150, z: 0 });
-  position(wall.groundMesh, { x: 0, y: -800, z: -300 });
-
+  //in game platform surrounding the ships
+  position(prefabHanger, { x: 0, y: -800, z: -300 });
   // @TODO:
   // position(gameState.playerObject.playerCamera, { x: 0, y: -80, z: 50 });
 
   const color = new THREE.Color(0xffffff);
-  const intensity = 5;
+  const intensity = 1;
   const lightConfig = {
     color,
     intensity,
@@ -322,27 +276,72 @@ if (WebGL.isWebGL2Available()) {
       secondShip.position.z + 200,
     ),
   );
+
+  // gui.add(secondShip.position, "x", -1000, 1000, 1)
+  // .name("second ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.x = value;
+  //   });
+  // gui.add(secondShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.y = value;
+  //   });
+  // gui.add(secondShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     secondShip.position.z = value;
+  //   });
+  // gui.add(thirdShip.position, "x", -1000, 1000, 1)
+  // .name("third ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.x = value;
+  //   });
+  // gui.add(thirdShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.y = value;
+  //   });
+  // gui.add(thirdShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     thirdShip.position.z = value;
+  //   });
+  // gui.add(fourthShip.position, "x", -1000, 1000, 1)
+  // .name("fourth ship x")
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.x = value;
+  //   });
+  // gui.add(fourthShip.position, "y", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.y = value;
+  //   });
+  // gui.add(fourthShip.position, "z", -1000, 1000, 1)
+  // .onChange((value) => {
+  //   console.log(value);
+  //     fourthShip.position.z = value;
+  //   });
   // bottomLeftShipDisplay.target = secondShip;
   // gameState.gameHasStarted = true; //enabling to remove hte need to create new game
 
   position(heightTerrain.terrainGroup, { x: 0, y: 80, z: -3000 });
-  gui
-    .add(heightTerrain.terrainGroup.position, "x", -100000, 100000, 15)
-    // .name("earth x")
-    .onChange((value) => {
-      position(heightTerrain.terrainGroup, {
-        x: value,
-        y: heightTerrain.terrainGroup.position.y,
-        z: heightTerrain.terrainGroup.position.z,
-      });
-    });
+  // gui
+  //   .add(heightTerrain.terrainGroup.position, "x", -100000, 100000, 15)
+  //   // .name("earth x")
+  //   .onChange((value) => {
+  //     position(heightTerrain.terrainGroup, {
+  //       x: value,
+  //       y: heightTerrain.terrainGroup.position.y,
+  //       z: heightTerrain.terrainGroup.position.z,
+  //     });
+  //   });
 
   scene.add(heightTerrain.terrainGroup);
-  scene.add(flatTerrain.groundMesh);
-  scene.add(wall.groundMesh);
-  // scene.add(wall2.groundMesh);
-  // scene.add(wall3.groundMesh);
-  // scene.add(wall4.groundMesh);
+  scene.add(prefabHanger);
 
   //===============================================================
   let currentAmmo = [];
@@ -373,7 +372,7 @@ if (WebGL.isWebGL2Available()) {
         "./models/missile/AIM120D.obj",
         function (object) {
           const textureLoader = new THREE.TextureLoader();
-          const texture = textureLoader.load("models/missile/texture.png.png"); // Use your texture path here
+          const texture = textureLoader.load("./models/missile/texture.png"); // Use your texture path here
           object.traverse((child) => {
             if (child.isMesh) {
               child.material.map = texture; // Apply texture to all mesh materials
@@ -575,41 +574,72 @@ if (WebGL.isWebGL2Available()) {
     } else {
       inventory.style.display = "none";
       inventoryDiv.style.display = "none";
-      if(gameState.gameHasStarted){
+      if (gameState.gameHasStarted) {
         document.body.style.cursor = "none";
-        if(gameState.isPaused){
+        if (gameState.isPaused) {
           document.body.style.cursor = "default";
-          
         }
       }
     }
   }
-  function showTip() {
-    toolTip.innerHTML = `Being in Orbit is tricky! \n
-    
-    \n
-    Its easier to get around in a ship.
 
-    Use the mouse to point at a ship you want until it turns gold!
- \n
-    To stabilize your vision press "h" on your keyboard,
+  function showMouseTip() {
+    toolTip.innerHTML = `
+    Look at a ship, and press V to interact
+    To stabilize your vision press H,
+    `;
 
-    
-    Then click here to hop in!`;
     if (!gameState.playerObject.playerShip.position) {
       toolTip.style.display = "block";
+      toolTip.style.fontSize = "1em";
     } else {
       toolTip.style.display = "none";
     }
     toolTip.style.background = "red";
-    toolTip.onclick = (event) => {
-      if (gameState.selectAbleShips.length && gameState.selectedShip)
-        gameState.confirmSelectedShip();
-    };
+
+    // toolTip.onclick = (event) => {
+    //   if (gameState.selectAbleShips.length && gameState.selectedShip)
+    //     gameState.confirmSelectedShip();
+    //   document.querySelectorAll(".hudControls").forEach((el) => {
+    //     if (el.id !== "hudUnarmed") {
+    //       el.style.display = "block";
+    //     }
+    //   });
+    // };
   }
+
+  function showMoveTip() {
+    toolTip.innerHTML = `
+    Begin moving with 
+    <br />
+    <br />
+    W , A , S, D`;
+
+    if (gameState.tutorial) {
+      toolTip.style.display = "block";
+    } else {
+      toolTip.style.display = "none";
+      return true;
+    }
+    toolTip.style.background = "red";
+
+    // toolTip.onclick = (event) => {
+    //   if (gameState.selectAbleShips.length && gameState.selectedShip)
+    //     gameState.confirmSelectedShip();
+    //   document.querySelectorAll(".hudControls").forEach((el) => {
+    //     if (el.id !== "hudUnarmed") {
+    //       el.style.display = "block";
+    //     }
+    //   });
+    // };
+  }
+
   function updateGameState() {
     if (gameState.getGameHasStarted()) {
-      showTip();
+      const step = showMoveTip();
+      if (step) {
+        showMouseTip();
+      }
     }
     if (gameState.inventoryDisplay) {
       showInventory();
@@ -656,12 +686,14 @@ if (WebGL.isWebGL2Available()) {
     );
   }
 
-  function calculateShipSpeed(time) {
+  function calculateShipSpeed(time, targetting) {
+    let speedModifier = targetting ? 0.00035 : 0.001;
+    time *= speedModifier; // convert time to seconds
+    // time *= 0.001; // convert time to seconds
     // move spaceship
-    time *= 0.001; // convert time to seconds
     //because this is in the animation loop, each iteration will find a new point within the spline curve to adjust direction and orientation
     //updating the meta data for posiont and orientation
-    const shipTime = time * 0.003;
+    const shipTime = time * speedModifier;
     //affects how many points are calculated along the vector curve to set the position and orientation
     const shipSpeed = shipTime % 1;
     return shipSpeed;
@@ -754,84 +786,93 @@ if (WebGL.isWebGL2Available()) {
   //   child.scale?.multiplyScalar(WORLD_SCALE);
   // });
 
+  let timeSinceLastFrame = 0;
+  let targetFrameRate = 30;
+  let frameInterval = 1000 / targetFrameRate;
+
+  function updateFrameCountDisplay(time) {
+    let formatTime = time.toFixed(0);
+    const framesDoc = document.getElementById("frames");
+    if (framesDoc)
+      framesDoc.textContent = `frames per second 
+     ${formatTime}`;
+  }
   function animate(time) {
-    if (!guiAdd && gameState.playerObject.playerShip.object) {
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "y",
-          -100,
-          100,
-          0.005,
-        )
-        .name("rotate y")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.y = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "x",
-          -10,
-          10,
-          0.01,
-        )
-        .name("rotate x")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.x = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.rotation,
-          "z",
-          -100,
-          100,
-          0.01,
-        )
-        .name("rotate z")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.rotation.z = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "y",
-          -100,
-          100,
-          1,
-        )
-        .name("position y")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.y = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "x",
-          -100,
-          100,
-          1,
-        )
-        .name("position x")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.x = value;
-        });
-      gui
-        .add(
-          gameState.playerObject.playerShip.object.parent.position,
-          "z",
-          -360,
-          360,
-          1,
-        )
-        .name("position z")
-        .onChange((value) => {
-          gameState.playerObject.playerShip.object.parent.position.z = value;
-        });
-      guiAdd = true;
-    }
-    if (gameState.playerObject.playerShip) {
-    }
+    // if (!guiAdd && gameState.playerObject.playerShip.object) {
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "y",
+    //       -100,
+    //       100,
+    //       0.005,
+    //     )
+    //     .name("rotate y")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.y = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "x",
+    //       -10,
+    //       10,
+    //       0.01,
+    //     )
+    //     .name("rotate x")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.x = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.rotation,
+    //       "z",
+    //       -100,
+    //       100,
+    //       0.01,
+    //     )
+    //     .name("rotate z")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.rotation.z = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "y",
+    //       -100,
+    //       100,
+    //       1,
+    //     )
+    //     .name("position y")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.y = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "x",
+    //       -100,
+    //       100,
+    //       1,
+    //     )
+    //     .name("position x")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.x = value;
+    //     });
+    //   gui
+    //     .add(
+    //       gameState.playerObject.playerShip.object.parent.position,
+    //       "z",
+    //       -360,
+    //       360,
+    //       1,
+    //     )
+    //     .name("position z")
+    //     .onChange((value) => {
+    //       gameState.playerObject.playerShip.object.parent.position.z = value;
+    //     });
+    //   guiAdd = true;
+    // }
     // gameState.getGameHasStarted();
     gameState.controls.enabled = gameState.getControlsEnabled();
     heightTerrain.groundMesh.rotation.y += 0.0001;
@@ -852,7 +893,6 @@ if (WebGL.isWebGL2Available()) {
       gameState.displayReload(false);
     }
     if (time - lastCheck > 40) {
-      console.log(gameState.playerObject.clipSize);
       gameState.updateShots(time);
       if (gameState.playerObject.playerShip.object) {
         tempEuler.setFromQuaternion(gameState.playerObject.playerCamera);
@@ -875,12 +915,13 @@ if (WebGL.isWebGL2Available()) {
       }
     }
     if (gameState.updatedInventory) {
-      // localInventory = gameState.inventory;
-
       updateInventoryUI();
     }
 
     if (time - lastCheck > 100) {
+      if(gameState.activeCards.length){
+        gameState.updateShipStatsQuat()
+      }
       gameState.selectAbleShips.forEach((ship) =>
         gameState.setShipGlow(ship, false),
       );
@@ -891,7 +932,8 @@ if (WebGL.isWebGL2Available()) {
         ) {
           gameState.setShipGlow(gameState?.selectedObject.object.parent, true);
 
-          // gameState.addHalo(gameState.selectedObject.object)   this is highly non performant, creates 1000s of meshes
+          // gameState.addHalo(gameState.selectedObject.object)
+          // this is highly non performant, creates 1000s of meshes
         }
       }
       if (gameState.playerObject?.playerShip?.group?.position) {
@@ -913,99 +955,150 @@ if (WebGL.isWebGL2Available()) {
       inventoryElement.style.position = "fixed";
     }
     requestAnimationFrame(animate);
-    //Reorients the camera on a level plane of (0,0)
-    if (gameState.center) {
-      //call function on playerObject that is a center function
-      gameState.playerObject.centerAim();
-      camera.rotation.x = 0;
-      camera.rotation.z = 0;
-      //reset local center state
-      // center = false;
-    }
+    const deltaTime = clock.getDelta();
+    timeSinceLastFrame += deltaTime * 1000;
+    // 3. Only update logic and render if the target interval is reached
+    if (timeSinceLastFrame >= frameInterval) {
+      // --- PUT YOUR SIMULATION LOGIC HERE ---
+      // updateNPCs(deltaTime);
 
-    const delta = clock.getDelta();
-    for (let i = gameState.bloodSystems.length - 1; i >= 0; i--) {
-      if (!gameState.bloodSystems[i].update(delta)) {
-        gameState.bloodSystems.splice(i, 1); // remove finished systems
+      updateFrameCountDisplay(1000 / timeSinceLastFrame);
+      //Reorients the camera on a level plane of (0,0)
+      if (gameState.center) {
+        //call function on playerObject that is a center function
+        gameState.playerObject.centerAim();
+        gameState.playerObject.playerCamera.rotation.x = 0;
+        gameState.playerObject.playerCamera.rotation.z = 0;
+        //reset local center state
+        // center = false;
+      }
+      // const delta = clock.getDelta();
+      for (let i = gameState.bloodSystems.length - 1; i >= 0; i--) {
+        if (!gameState.bloodSystems[i].update(deltaTime)) {
+          gameState.bloodSystems.splice(i, 1); // remove finished systems
+        }
+      }
+      // / in your animation loop
+      // const delta = clock.getDelta();
+      for (let i = gameState.globeSystems?.length - 1; i >= 0; i--) {
+        if (!gameState.globeSystems[i].update(delta)) {
+          gameState.globeSystems.splice(i, 1);
+        }
+      }
+
+      //move speed is 2 plus the number applied from the boost on playObject
+      const moveSpeed =
+        gameState.playerObject.getCurrentSpeed() +
+        (gameState.playerObject.getActiveBoost() &&
+          gameState.playerObject.applyPlayerBoost().boostSpeed);
+
+      const shipDirection = new THREE.Vector3();
+      gameState.playerObject.playerCamera.getWorldDirection(shipDirection);
+
+      // const deltaTime = time - lastTime;
+      // lastTime = time;
+
+      // if (deltaTime >= 7) {
+      //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class
+      // @TODO: just some crazyiness here when attaching to the ship,
+      // player movement speed cut down almsot down fold
+      gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
+
+      let curveRetData = [shipPosition, ...spaceShipGroupAutomation];
+      let returnCurve = AutomationUtils.createAutomationMovement(curveRetData);
+
+      //validating player has selected a ship
+      // then calculate distancebased of a threshhold for attack distance
+      if (!Object.keys(gameState.playerObject.playerShip).length) {
+        calculateMovementAutomation(
+          curve,
+          calculateShipSpeed(time, false),
+          shipPosition,
+        );
+
+        //check we are in range after verifying player ship
+      } else if (
+        shipPosition.distanceTo(
+          getObjectGlobalPosition(gameState.playerObject.playerShip),
+        ) < 1600
+      ) {
+        const playerTargetAutomation = [
+          shipPosition,
+          getObjectGlobalPosition(gameState.playerObject.playerShip).add(
+            new THREE.Vector3(200, 200, 200),
+          ),
+        ];
+        let playerCurve = AutomationUtils.createAutomationMovement(
+          playerTargetAutomation,
+        );
+
+        calculateMovementAutomation(
+          playerCurve,
+          calculateShipSpeed(time, true),
+          shipPosition,
+        );
+      } else {
+        calculateMovementAutomation(
+          returnCurve,
+          calculateShipSpeed(time, false),
+          shipPosition,
+        );
+      }
+      updateProgrammedCharacters(spaceShipGroup, "spaceShipGroup");
+
+      // Calculate the direction vector from shipPosition to SHIP_TARGET
+      const direction = new THREE.Vector3()
+        .subVectors(SHIP_TARGET, shipPosition)
+        .normalize();
+      const newDirection = new THREE.Vector3()
+        .subVectors(SHIP_TARGET, shipPosition)
+        .normalize();
+      if (!direction.equals(newDirection)) {
+        targetQuaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 0, 1),
+          newDirection,
+        );
+        spaceShipGroup.quaternion.slerp(targetQuaternion, 0.1);
+      }
+
+      updateGradient();
+
+      // Update the controls for smooth camera movement
+      // gameState.controls.update(gameState.getLookSensitivity()); // Small delta time for smoother movement
+      //check each cell in the 3d array of inventory for values different in the same cells as local inventory
+
+      if (gameState.inventory && gameState.inventory.length > 0) {
+        updateInventoryUI();
+      }
+
+      if (gameState.getInteracting() && !gameState.wasInteracting) {
+        if (gameState?.selectedObject?.object?.parent?.specialInteract) {
+          startInteraction();
+        } else if (isCssObject()) {
+          endInteraction();
+        }
+      }
+      gameState.wasInteracting = gameState.getInteracting();
+      if (gameState.looper) {
+        gameState.controls.enabled = false;
+      } else {
+        gameState.controls.update(gameState.playerObject.getLookSensitivity());
+      }
+
+      // 1. starts the scene rendering
+      if (!gameState.getUserTitleMenu()) {
+        renderer.render(scene, gameState.playerObject.playerCamera);
+        cssRenderer.render(scene, gameState.playerObject.playerCamera);
       }
     }
 
-    // / in your animation loop
-    // const delta = clock.getDelta();
-    for (let i = gameState.globeSystems?.length - 1; i >= 0; i--) {
-      if (!gameState.globeSystems[i].update(delta)) {
-        gameState.globeSystems.splice(i, 1);
-      }
-    }
+    const drawCalls = renderer.info;
+    // console.log("Draw Calls This Frame:", drawCalls);
+    renderer.render(scene, gameState.playerObject.playerCamera);
 
-    //move speed is 2 plus the number applied from the boost on playObject
-    const moveSpeed =
-      gameState.playerObject.getCurrentSpeed() +
-      (gameState.playerObject.getActiveBoost() &&
-        gameState.playerObject.applyPlayerBoost().boostSpeed);
-
-    const shipDirection = new THREE.Vector3();
-    camera.getWorldDirection(shipDirection);
-
-    const deltaTime = time - lastTime;
-    lastTime = time;
-
-    //trying to move this into the player class, having no luck on the boost working with the movement, this the function call from the class
-    if (deltaTime >= 50) {
-    }
-    gameState.playerObject.operateMovement(deltaTime, time, mouseDirection);
-
-    calculateMovementAutomation(curve, calculateShipSpeed(time), shipPosition);
-    updateProgrammedCharacters(spaceShipGroup, "spaceShipGroup");
-
-    // Calculate the direction vector from shipPosition to SHIP_TARGET
-    const direction = new THREE.Vector3()
-      .subVectors(SHIP_TARGET, shipPosition)
-      .normalize();
-    const newDirection = new THREE.Vector3()
-      .subVectors(SHIP_TARGET, shipPosition)
-      .normalize();
-    if (!direction.equals(newDirection)) {
-      targetQuaternion.setFromUnitVectors(
-        new THREE.Vector3(0, 0, 1),
-        newDirection,
-      );
-      spaceShipGroup.quaternion.slerp(targetQuaternion, 0.1);
-    }
-
-    updateGradient();
-
-    // Update the controls for smooth camera movement
-    // gameState.controls.update(gameState.getLookSensitivity()); // Small delta time for smoother movement
-    //check each cell in the 3d array of inventory for values different in the same cells as local inventory
-
-    if (gameState.inventory && gameState.inventory.length > 0) {
-      updateInventoryUI();
-    }
-
-    if (gameState.getInteracting() && !gameState.wasInteracting) {
-      if (gameState?.selectedObject?.object?.parent?.specialInteract) {
-        startInteraction();
-      } else if (isCssObject()) {
-        endInteraction();
-      }
-    }
-    gameState.wasInteracting = gameState.getInteracting();
-
-    if (gameState.looper) {
-      gameState.controls.enabled = false;
-    } else {
-      gameState.controls.update(gameState.playerObject.getLookSensitivity());
-    }
-
-    // 1. starts the scene rendering
-    if (!gameState.getUserTitleMenu()) {
-      renderer.render(scene, camera);
-      cssRenderer.render(scene, camera);
-    }
+    // Subtract the frame interval, keeping any leftover time for precision
+    timeSinceLastFrame %= frameInterval;
   }
-
-  // Initiate function or other initializations here
   requestAnimationFrame(animate);
 } else {
   const warning = WebGL.getWebGL2ErrorMessage();

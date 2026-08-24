@@ -114,18 +114,19 @@ export class MapBuilder {
       groundDepth,
     );
     if (texture) {
-      terrainTexture = this.gameState.TextureLoader.load(texture, (t) => {
-        t.wrapS = THREE.RepeatWrapping;
-        t.wrapT = THREE.RepeatWrapping;
-        t.repeat.set(xTyling, yTyling); // Adjust the 10,10 to control the tiling size
-      });
+      terrainTexture = texture;
+      terrainTexture.wrapS = THREE.RepeatWrapping;
+      terrainTexture.wrapT = THREE.RepeatWrapping;
+      terrainTexture.repeat.set(xTyling, yTyling); // Adjust the 10,10 to control the tiling size
     } else {
       terrainTexture = this.flatTerrainTexture;
     }
     let groundMaterial;
     if (terrainTexture) {
-      groundMaterial = new THREE.MeshPhongMaterial({
+      groundMaterial = new THREE.MeshStandardMaterial({
         map: terrainTexture,
+        metalness: 1.0,
+        roughness: 0.3,
       });
     }
     const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -153,11 +154,45 @@ export class MapBuilder {
   //   return groundMaterialShader;
   // }
 
+  generateMetalWallTexture(width = 512, height = 512, color = "#999") {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    // Base fill (steel gray)
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Add brushed streaks
+    for (let y = 0; y < height; y++) {
+      const alpha = Math.random() * 0.2;
+        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    // Add vertical panel divisions
+    ctx.strokeStyle = "#bdbbbb";
+    ctx.lineWidth = 4;
+    for (let x = width / 4; x < width; x += width / 4) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.needsUpdate = true;
+
+    return texture;
+  }
+
   genHeightTerrain(groundMaterialShader, options) {
-    const gui = new dat.GUI();
     const { radius, heightSegments, widthSegments, category } = options;
-    const sphereFolder = gui.addFolder("Sphere Controls");
-    this.buildGui(sphereFolder);
 
     // const sphereGeoOptions = {
     //   radius: options.w,
@@ -186,52 +221,8 @@ export class MapBuilder {
     const groundMesh = new THREE.Mesh(groundGeo, groundMaterialShader); // this is with shaderMaterial
     groundMesh.receiveShadow = true;
 
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "radius", 0, 3000, 15)
-      .name("radius for earth")
-      .onChange((value) => {
-        // ensure base is always smaller
-        // baseSphere.geometry.dispose();
-        if (sphereGeoOptions.radius >= value) {
-          let newRadius = value - 100;
-          sphereGeoOptions.radius = newRadius;
-
-          baseSphere.geometry = new THREE.SphereGeometry(newRadius, 64, 64);
-        }
-        if (sphereGeoOptions.radius <= value) {
-          let newRadius = value - 100;
-          sphereGeoOptions.radius = newRadius;
-          baseSphere.geometry = new THREE.SphereGeometry(value - 100, 64, 64);
-        }
-        // groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          value,
-          groundMesh.geometry.parameters.heightSegments,
-          groundMesh.geometry.parameters.widthSegments,
-        );
-      });
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "heightSegments", 0, 1000, 5)
-      .onChange((value) => {
-        groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          groundMesh.geometry.parameters.radius,
-          value,
-          groundMesh.geometry.parameters.widthSegments,
-        );
-      });
-    sphereFolder
-      .add(groundMesh.geometry.parameters, "widthSegments", 0, 1000, 5)
-      .onChange((value) => {
-        groundMesh.geometry.dispose(); // cleanup old geometry
-        groundMesh.geometry = new THREE.SphereGeometry(
-          groundMesh.geometry.parameters.radius,
-          groundMesh.geometry.parameters.widthSegments,
-          value,
-        );
-      });
-
     const terrainGroup = new THREE.Group();
+    terrainGroup.isInteractable = false;
     terrainGroup.add(groundMesh);
     terrainGroup.add(baseSphere);
     terrainGroup.name = "earthSphere";
@@ -375,6 +366,41 @@ export class MapBuilder {
         this.uniforms.snowColorDepth.value = value;
       });
     // open the folder by default
-    sphereFolder.open();
+    // sphereFolder.open();
+  }
+
+  async generatePreFabHanger() {
+    const prefabGroup = new THREE.Group();
+    const flatTerrain = await this.buildFlatTerrain(
+      500,
+      3,
+      500,
+      await this.generateMetalWallTexture(),
+    );
+    const wall = await this.buildFlatTerrain(
+      1000,
+      1000,
+      3,
+      await this.generateMetalWallTexture(),
+      100,
+      100,
+    );
+    const door = await this.buildFlatTerrain(
+      200,
+      350,
+      50,
+      await this.generateMetalWallTexture(),
+      100,
+      100,
+    );
+    door.geometry;
+    prefabGroup.add(flatTerrain.groundMesh);
+    prefabGroup.add(wall.groundMesh);
+    door.groundMesh.position.y = 0
+    door.groundMesh.position.x = -200
+    prefabGroup.add(door.groundMesh
+    );
+    prefabGroup.notInteractable = true;
+    return prefabGroup;
   }
 }

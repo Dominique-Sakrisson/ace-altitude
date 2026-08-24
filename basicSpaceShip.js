@@ -3,13 +3,7 @@ import * as THREE from "three";
 import "./style.css";
 
 const shipLoader = new THREE.TextureLoader();
-const boxWidth = 2;
-const boxHeight = 1;
-const boxDepth = 3;
-const shipTexture = shipLoader.load("/shipTexture.jpg");
-const flameTexture = shipLoader.load("/fire.png");
-const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+
 // material.emissive = true;
 // material.emissiveIntensity  = 20;
 
@@ -92,6 +86,14 @@ export function assembleBasicShip(
   spawnPosition = { x: 0, y: 0, z: 0 },
   spawnRotation = { xRot: 0, yRot: 0, zRot: 0 },
 ) {
+  const boxWidth = 2;
+  const boxHeight = 1;
+  const boxDepth = 3;
+  const shipTexture = shipLoader.load("./shipTexture.jpg");
+  const flameTexture = shipLoader.load("./fire.png");
+  const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+  const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+
   const { x, y, z } = spawnPosition;
   const { xRot, yRot, zRot } = spawnRotation;
   const spaceShipGroup = new THREE.Group();
@@ -190,6 +192,115 @@ export function assembleBasicShip(
   });
 
   spaceShipGroup.position.set(x, y, z);
+  spaceShipGroup.shipStats = {name:"blockie bling", speed:5, durability: 175, shield: 50, repair: 10, weapon: 30  };
+
+  if (spawnRotation) {
+    spaceShipGroup.rotation.set(xRot, yRot, zRot);
+  }
+
+  return spaceShipGroup;
+}
+
+export function assembleSpeedShip(
+  name,
+  spawnPosition = { x: 0, y: 0, z: 0 },
+  spawnRotation = { xRot: 0, yRot: 0, zRot: 0 },
+) {
+  const boxWidth = 2;
+  const boxHeight = 1;
+  const boxDepth = 3;
+  const shipTexture = shipLoader.load("./shipTexture.jpg");
+  const flameTexture = shipLoader.load("./fire.png");
+  const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+  const material = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+  const { x, y, z } = spawnPosition;
+  const { xRot, yRot, zRot } = spawnRotation;
+
+  const shipHull = new THREE.Shape()
+    .moveTo(x, y)
+    .absarc(1, 1, 4, 0, Math.PI * 2, false);
+
+  const hullGeometry = new THREE.ConeGeometry(5, 15, 5, 5, false, 0, 6);
+  // const hullGeometry = new THREE.ConeGeometry(5, 20, 5, 5, true);
+  hullGeometry.rotateX(50);
+  const cargoHold = new THREE.Mesh(hullGeometry, material);
+
+  const cockpitMat = new THREE.MeshPhongMaterial({ map: shipTexture });
+
+  const spaceShipGroup = new THREE.Group();
+  spaceShipGroup.name = name;
+  spaceShipGroup.castShadow = true;
+  spaceShipGroup.receiveShadow = true;
+  spaceShipGroup.markerConfig = {
+    materialConfig: {
+      type: "metalic",
+      color: "#afd81dff",
+      specular: "#d49919ff",
+      shininess: 100,
+      emissive: "#d49919ff",
+    },
+  };
+
+  // // const ground = makeBoxInstance(boxGeometry, "#964B00", 0, 0);
+  const engineChamber = new THREE.Mesh(boxGeometry, material.clone());
+  // //   const engineChamber = makeBoxInstance(boxGeometry, 0x00000, 0, 0);
+  const engineMount = new THREE.Mesh(boxGeometry, material.clone());
+
+  const radius = 3.5;
+
+  const height = 8;
+
+  const radialSegments = 8;
+
+  const coneGeometry = new THREE.ConeGeometry(radius, height, radialSegments);
+  const engineThrustMat = new THREE.MeshPhongMaterial({
+    map: gradientTexture,
+  });
+  const engineThrustMat2 = new THREE.MeshPhongMaterial({
+    map: flameTexture,
+  });
+  const engineThrust = new THREE.Mesh(coneGeometry, engineThrustMat2);
+  engineThrust.scale.set(10, 5, 5);
+  engineThrust.position.set(0, 10.05, -8.5);
+  engineThrust.rotation.x = -1.25;
+  engineChamber.scale.set(10, 10, 3);
+  engineChamber.position.set(0, 10, 0);
+  engineMount.scale.set(5, 2, 9);
+  engineMount.position.set(0, 10, 10);
+  cargoHold.scale.set(5, 5, 5);
+  cargoHold.position.set(0, 20, 40);
+  cargoHold.rotation.x = 1.55;
+  const cockpitRadius = 10.0;
+  // const cockpitMat = new THREE.MeshPhongMaterial({ map: shipTexture });
+  // const cockpitMat = new THREE.MeshPhongMaterial("#964B00");
+  const detail = 1;
+  const cockpitGeometry = new THREE.DodecahedronGeometry(cockpitRadius, detail);
+  const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMat);
+
+  cockpit.position.y = 32;
+  cockpit.position.x = 0;
+  cockpit.position.z = 15;
+
+  const mergedMeshes = [
+    cargoHold,
+    // cone,
+    engineMount,
+    engineChamber,
+    // engineChamber2,
+    engineThrust,
+    // engineThrust2,
+    cockpit,
+    // cockpit2,
+  ];
+
+  // Add all meshes to the group
+  mergedMeshes.forEach((mesh) => {
+    spaceShipGroup.add(mesh);
+    mesh.updateMatrix();
+  });
+
+  spaceShipGroup.position.set(x, y, z);
+  spaceShipGroup.shipStats = {name: "zoomie zong", speed:20, durability: 100, shield: 25, repair: 5, weapon: 10  };
   if (spawnRotation) {
     spaceShipGroup.rotation.set(xRot, yRot, zRot);
   }

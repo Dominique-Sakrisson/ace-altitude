@@ -29,9 +29,7 @@ export class GameState {
   constructor({
     lookSensitivity,
     boost,
-    // playerObject,
     window,
-    camera,
     scene,
     canvas,
     renderer,
@@ -45,6 +43,7 @@ export class GameState {
     this.isPaused = false;
     this.userTitleMenu = true;
     this.gameHasStarted = false;
+    this.tutorial = true;
     this.optionsPage = false;
     this.newGame = false;
     this.activeMenu = this.readActiveMenu();
@@ -58,7 +57,7 @@ export class GameState {
     this.interact = false;
     this.interacting = false;
     this.showInteract = false;
-    this.playerObject = new PlayerSetup(window, camera, this.socket);
+    this.playerObject = new PlayerSetup(window, this.socket);
     this.moveForward = false;
     this.moveBackward = false;
     this.moveLeft = false;
@@ -92,6 +91,7 @@ export class GameState {
       renderer.domElement,
     );
     (this.activeShots = []), (this.mapBuilder = new MapBuilder(this));
+    this.activeCards = [];
     this.inventorySystem = new InventorySystem(3, 3);
     this.inventoryDisplay = false;
     this.inventory = [
@@ -104,62 +104,76 @@ export class GameState {
     this.selectAbleShips = [];
     this.objectLoader = new THREE.ObjectLoader();
     this.connectedPlayers = {};
-    this.socket.on("join players", (players) => {
-      const ship = assembleBasicShip(
-        players.id,
-        { x: players.position.x, y: players.position.y, z: players.position.z },
-        {
-          xRot: players.rotation._x,
-          yRot: players.rotation._y,
-          zRot: players.rotation._z,
-        },
-      );
 
-      this.connectedPlayers[players.id] = ship;
-      ship.rotateY(Math.PI);
-      this.scene.add(ship);
-    });
-
-    this.socket.on("spawn bullet", (data) => {
-      const pos = {
-        cameraPos: new THREE.Vector3(
-          data.position.x,
-          data.position.y,
-          data.position.z,
-        ),
-        cameraDir: new THREE.Vector3(
-          data.direction.x,
-          data.direction.y,
-          data.direction.z,
-        ).normalize(),
-      };
-      if (data.sound === "shootBasicGun") {
-        const sound = new THREE.PositionalAudio(this.audioListener);
-        sound.setBuffer(this.shootBasicGun.buffer);
-        sound.setRefDistance(100);
-        sound.setVolume(0.15);
-        const bulletGroup = createBulletFromData(
-          this.scene,
-          this.activeShots,
-          pos,
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("join players", (players) => {
+        const ship = assembleBasicShip(
+          players.id,
+          {
+            x: players.position.x,
+            y: players.position.y,
+            z: players.position.z,
+          },
+          {
+            xRot: players.rotation._x,
+            yRot: players.rotation._y,
+            zRot: players.rotation._z,
+          },
         );
-        bulletGroup.add(sound);
-        sound.play();
-      }
-    });
-    this.socket.on("player moved", (data) => {
-      const player = this.connectedPlayers[data.id];
 
-      if (!player) {
-        console.warn(`No player found for id ${data.id}`);
-        return;
-      }
+        this.connectedPlayers[players.id] = ship;
+        ship.rotateY(Math.PI);
+        this.scene.add(ship);
+      });
+    }
 
-      // Now you can safely update that player’s position or whatever you need
-      player.position.set(data.position.x, data.position.y, data.position.z);
-      player.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
-      player.rotateY(Math.PI);
-    });
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("spawn bullet", (data) => {
+        const pos = {
+          cameraPos: new THREE.Vector3(
+            data.position.x,
+            data.position.y,
+            data.position.z,
+          ),
+          cameraDir: new THREE.Vector3(
+            data.direction.x,
+            data.direction.y,
+            data.direction.z,
+          ).normalize(),
+        };
+        if (data.sound === "shootBasicGun") {
+          const sound = new THREE.PositionalAudio(this.audioListener);
+          sound.setBuffer(this.shootBasicGun.buffer);
+          sound.setRefDistance(100);
+          sound.setVolume(0.15);
+          const bulletGroup = createBulletFromData(
+            this.scene,
+            this.activeShots,
+            pos,
+          );
+          bulletGroup.add(sound);
+          sound.play();
+        }
+      });
+    }
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.on("player moved", (data) => {
+        const player = this.connectedPlayers[data.id];
+
+        if (!player) {
+          console.warn(`No player found for id ${data.id}`);
+          return;
+        }
+
+        // Now you can safely update that player’s position or whatever you need
+        player.position.set(data.position.x, data.position.y, data.position.z);
+        player.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+        player.rotateY(Math.PI);
+      });
+    }
+  }
+  checkSocket(socket) {
+    return !!socket;
   }
   addSelectableShip(ship) {
     this.selectAbleShips.push(ship);
@@ -340,10 +354,29 @@ export class GameState {
           }, this.playerObject.currentWeapon.reloadSpeed);
         }
 
+        const allObjects = [];
+
+        this.scene.traverse((child) => {
+          if (child.isGroup && child.markerConfig) {
+            allObjects.push(child);
+          }
+        });
+        this.targetingSystem = new TargetingSystem(
+          this.playerObject.playerCamera,
+          allObjects,
+        );
+
         if (this.targetingSystem.intersects.length) {
+          const {
+            target,
+            baryCoords,
+            targetGeometry: geometry,
+          } = this.targetingSystem.getCurrentTarget();
+          document.getElementById("hudDist").innerHTML =
+            `Distance \n ${target.distance.toFixed(2)}`;
+          this.selectedObject = target;
           const colorAttr =
             this.selectedObject.object.geometry.attributes.color;
-          // const geometry = this.selectedObject.object.geometry;
 
           //check if the object is within range of the weapon distance
           if (this.geometry.isBufferGeometry) {
@@ -421,12 +454,14 @@ export class GameState {
             }, 200);
           }
         }
-        this.socket.emit("spawn bullet", {
-          owner: this.socket.id,
-          position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
-          direction: { x: direction.x, y: direction.y, z: direction.z },
-          sound: "shootBasicGun", // just a name or ID
-        });
+        if (this.checkSocket(this.socket.on)) {
+          this.socket.emit("spawn bullet", {
+            owner: this.socket.id,
+            position: { x: shotPos.x, y: shotPos.y, z: shotPos.z },
+            direction: { x: direction.x, y: direction.y, z: direction.z },
+            sound: "shootBasicGun", // just a name or ID
+          });
+        }
       } else {
         const direction = new THREE.Vector3();
         document.getElementById("hudUnarmed").style.display = "block";
@@ -499,8 +534,9 @@ export class GameState {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
-      this.camera.aspect = window.innerWidth / window.innerHeight;
-      this.camera.updateProjectionMatrix();
+      this.playerObject.playerCamera.aspect =
+        window?.innerWidth / window?.innerHeight;
+      this.playerObject.playerCamera.updateProjectionMatrix();
     });
   }
 
@@ -564,6 +600,82 @@ export class GameState {
     return /^[\x00-\x7F]*$/.test(str);
   }
 
+  buildShipCard() {
+    const { x, y, z } = this.selectedObject.object.parent.position;
+
+    const shipStats = this.selectedObject.object.parent.shipStats;
+    const geometry = new THREE.PlaneGeometry(100, 250);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 100;
+    canvas.height = 250;
+    const ctx = canvas.getContext("2d");
+
+    //1 bar for a stat
+    const maxWidthFill = 75;
+    const maxDurability = 300;
+    const maxRepair = 10;
+    const maxShield = 100;
+    const maxSpeed = 20;
+    const maxWeapon = 100;
+    // Set line width
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#228b22";
+    ctx.lineJoin = "bevel";
+
+    ctx.fillStyle = "white";
+    ctx.fillText(shipStats.name, 10, 10, 75);
+    ctx.fillText("durability", 10, 30, 75);
+    ctx.fillText("repair", 10, 75, 75);
+    ctx.fillText("shield", 10, 120, 75);
+    ctx.fillText("speed", 10, 165, 75);
+    ctx.fillText("weapon", 10, 210, 75);
+
+    ctx.fillStyle = "green";
+    ctx.fillRect(10, 45, (75 / maxDurability) * shipStats.durability, 15);
+    ctx.strokeRect(10, 45, 75, 15);
+    ctx.fillRect(10, 90, (75 / maxRepair) * shipStats.repair, 15);
+    ctx.strokeRect(10, 90, 75, 15);
+    ctx.fillRect(10, 135, (75 / maxShield) * shipStats.shield, 15);
+    ctx.strokeRect(10, 135, 75, 15);
+    ctx.fillRect(10, 180, (75 / maxSpeed) * shipStats.speed, 15);
+    ctx.strokeRect(10, 180, 75, 15);
+    ctx.fillRect(10, 225, (75 / maxWeapon) * shipStats.weapon, 15);
+    ctx.strokeRect(10, 225, 75, 15);
+
+    const canvasTexture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({
+      map: canvasTexture,
+      side: THREE.DoubleSide,
+      transparent: false,
+    });
+
+    // 3. Mesh and Scene Addition
+    const plane = new THREE.Mesh(geometry, material);
+    plane.name = `${shipStats.name}-card`;
+    plane.position.x = x + 125;
+    plane.position.y = y + 100;
+    plane.position.z = z + 100;
+    this.activeCards.push(plane);
+    plane.quaternion.copy(this.playerObject.playerCamera.quaternion)
+    this.scene.add(plane);
+  }
+  updateShipStatsQuat(){
+    this.activeCards.map(card => card.quaternion.copy(this.playerObject.playerCamera.quaternion))
+  }
+  checkAndShowShipInfo() {
+    const { x, y, z } = this.selectedObject.object.parent.position;
+    const shipStats = this.selectedObject.object.parent.shipStats;
+    const cardCheck = this.scene.children.filter(
+      (item) => item.name === `${shipStats.name}-card`,
+    );
+    if (cardCheck.length >= 1) {
+      return;
+    } else {
+      this.buildShipCard();
+    }
+  }
+
   //interacts with particles, on the globeSystems
   //particles will have an item linked to its data that will allow adding an item to the inventory
   checkParticleInteractions(camera) {
@@ -574,7 +686,7 @@ export class GameState {
     for (const particle of particles) {
       const pos = new THREE.Vector3();
       particle.terrainGroup.getWorldPosition(pos);
-      const dist = camera.position.distanceTo(pos);
+      const dist = this.playerObject.playerCamera.position.distanceTo(pos);
       if (dist < this.interactionDistance) {
         candidates.push(particle.terrainGroup);
       }
@@ -677,24 +789,27 @@ export class GameState {
       if (!this.eventValidator.mouseMoveEvent(event)) {
         return;
       }
+      //mousemove while player has ship
       if (this.playerObject.playerShip.position) {
         const { raycaster } = this.playerObject.playerCamera;
         const targetPosition =
           this.playerObject.playerCamera.raycaster.ray.direction.clone();
-
-        this.socket.emit("player movement", {
-          id: this.socket.id,
-          position: this.playerObject.playerCamera.getWorldPosition(
-            new THREE.Vector3(),
-          ),
-          rotation: {
-            x: this.playerObject.playerShip.rotation.x,
-            y: this.playerObject.playerShip.rotation.y,
-            z: this.playerObject.playerShip.rotation.z,
-          },
-        });
+        if (this.checkSocket(this.socket.on)) {
+          this.socket.emit("player movement", {
+            id: this.socket.id,
+            position: this.playerObject.playerCamera.getWorldPosition(
+              new THREE.Vector3(),
+            ),
+            rotation: {
+              x: this.playerObject.playerShip.rotation.x,
+              y: this.playerObject.playerShip.rotation.y,
+              z: this.playerObject.playerShip.rotation.z,
+            },
+          });
+        }
       }
       this.setSelectedObject(event);
+      //highlighting the ship choice when player looks at it
       if (
         this.selectedObject &&
         this.selectAbleShips.length &&
@@ -703,6 +818,7 @@ export class GameState {
         )
       ) {
         this.selectedShip = this.selectedObject;
+        this.checkAndShowShipInfo();
       }
       const inRange = this.selectedObject?.distance <= this.interactionDistance;
       this.showInteract = false;
@@ -833,6 +949,9 @@ export class GameState {
         event.preventDefault();
         if (this.getIsPaused() || !this.getGameHasStarted()) return;
         this.playerObject.setMoveForward(true);
+        if (this.getTutorial()) {
+          this.tutorial = false;
+        }
         // this.updatePlayerPosition();
       }
       if (event.code === "KeyA") {
@@ -858,6 +977,16 @@ export class GameState {
       }
       if (event.code === "KeyV") {
         event.preventDefault();
+        //check that a playerShip hasnt been instantiated
+        if (this.selectedShip && !this.playerObject.playerShip.distance) {
+          console.log(this.playerObject.playerShip);
+          this.confirmSelectedShip();
+          document.querySelectorAll(".hudControls").forEach((el) => {
+            if (el.id !== "hudUnarmed") {
+              el.style.display = "block";
+            }
+          });
+        }
         this.setSelectedObject(event);
         const inRange =
           this.selectedObject?.distance <= this.interactionDistance;
@@ -937,6 +1066,9 @@ export class GameState {
   getGameHasStarted() {
     return this.gameHasStarted;
   }
+  getTutorial() {
+    return this.tutorial;
+  }
   getIsPaused() {
     return this.isPaused;
   }
@@ -997,19 +1129,21 @@ export class GameState {
     this.controls.rollSpeed = rollSpeed;
   }
   setSelectedObject(event) {
+    const interactable = [];
+    const solidObjects = [];
     const allObjects = [];
 
     this.scene.traverse((child) => {
-      if (child.isGroup) {
-        allObjects.push(child);
+      if (child.isGroup && child.isInteractable) {
+        interactable.push(child);
       }
     });
     let targetingSystem;
 
-    if (allObjects.length) {
+    if (interactable.length) {
       this.targetingSystem = new TargetingSystem(
         this.playerObject.playerCamera,
-        allObjects,
+        interactable,
       );
     }
 
@@ -1031,8 +1165,21 @@ export class GameState {
       document.getElementById("hudDist").innerHTML = `Distance \n  ${0}`;
     }
   }
+  removeShipCards() {
+    const cards = this.scene.children.filter((item) => {
+      return item.name.includes("card");
+    });
+    cards.map((card) => this.scene.remove(card));
+  }
   confirmSelectedShip() {
     this.playerObject.setPlayerShip(this.selectedShip);
+    this.removeShipCards();
+    const DEFAULT_ROLLSPEED = 24;
+    const moveSpeed = Math.PI / DEFAULT_ROLLSPEED;
+    this.moveSpeed =
+      moveSpeed + this.playerObject.playerShip.object.parent.shipStats.speed;
+    this.controls.movementSpeed =
+      moveSpeed + this.playerObject.playerShip.object.parent.shipStats.speed;
     this.reloadSound.stop();
     this.resetReloadSound(this.playerObject.currentWeapon.reloadSound);
     this.reloadSound.stop();
@@ -1044,7 +1191,9 @@ export class GameState {
       quaternion: this.playerObject.playerCamera.quaternion,
       position: this.playerObject.playerCamera.position,
     };
-    this.socket.emit("new player", body);
+    if (this.checkSocket(this.socket.on)) {
+      this.socket.emit("new player", body);
+    }
   }
   setShipGlow(shipGroup, glowing) {
     if (!shipGroup) return;
@@ -1100,7 +1249,6 @@ export class GameState {
       marker.scale.set(1 / parentScale.x, 1 / parentScale.y, 1 / parentScale.z);
       return marker;
     } else {
-      console.log("some bs", this.selectedObject);
     }
   }
 }
