@@ -657,7 +657,11 @@ export class GameState {
     plane.position.y = y + 100;
     plane.position.z = z + 100;
     this.activeCards.push(plane);
+    plane.quaternion.copy(this.playerObject.playerCamera.quaternion)
     this.scene.add(plane);
+  }
+  updateShipStatsQuat(){
+    this.activeCards.map(card => card.quaternion.copy(this.playerObject.playerCamera.quaternion))
   }
   checkAndShowShipInfo() {
     const { x, y, z } = this.selectedObject.object.parent.position;

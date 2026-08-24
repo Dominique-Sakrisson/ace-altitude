@@ -7,8 +7,12 @@ import {
   CSS3DRenderer,
   CSS3DObject,
 } from "three/addons/renderers/CSS3DRenderer.js";
-import { assembleBasicShip, assembleSpeedShip, updateGradient } from "./basicSpaceShip";
-import {CharacterCamera} from "./src/tools/camera/CharacterCamera";
+import {
+  assembleBasicShip,
+  assembleSpeedShip,
+  updateGradient,
+} from "./basicSpaceShip";
+import { CharacterCamera } from "./src/tools/camera/CharacterCamera";
 import { initGui } from "./src/ui/gui";
 import { initStation } from "./station";
 import { GameState } from "./gameState";
@@ -26,7 +30,6 @@ import {
 } from "./objectHelper";
 
 // const wsUrl = import.meta.env?.VITE_WS_URL;
-
 // import { io } from "socket.io-client";
 let socket = {};
 // if (wsUrl) {
@@ -157,7 +160,6 @@ if (WebGL.isWebGL2Available()) {
     y: -770,
     z: 140,
   });
-  console.log({thirdShip});
   thirdShip.isInteractable = true;
   thirdShip.rotation.x = -100;
   thirdShip.rotation.y = 100;
@@ -188,7 +190,7 @@ if (WebGL.isWebGL2Available()) {
   const toggles = { spaceShipGroup };
   // const toggles = { spaceShipGroup, directionalLight };
 
-  const gui = initGui(toggles);
+  // const gui = initGui(toggles);
 
   // gui.addFolder("player Controls");
 
@@ -881,11 +883,6 @@ if (WebGL.isWebGL2Available()) {
     updateGameState();
     // updateProjectiles();
 
-
-  console.log(gameState.controls);
-
-
-
     gameState.updateAmmoCountHud();
     if (gameState.playerObject.currentWeapon.reloading) {
       // if(!gameState.reloadSound.isPlaying){
@@ -918,12 +915,13 @@ if (WebGL.isWebGL2Available()) {
       }
     }
     if (gameState.updatedInventory) {
-      // localInventory = gameState.inventory;
-
       updateInventoryUI();
     }
 
     if (time - lastCheck > 100) {
+      if(gameState.activeCards.length){
+        gameState.updateShipStatsQuat()
+      }
       gameState.selectAbleShips.forEach((ship) =>
         gameState.setShipGlow(ship, false),
       );
@@ -934,7 +932,8 @@ if (WebGL.isWebGL2Available()) {
         ) {
           gameState.setShipGlow(gameState?.selectedObject.object.parent, true);
 
-          // gameState.addHalo(gameState.selectedObject.object)   this is highly non performant, creates 1000s of meshes
+          // gameState.addHalo(gameState.selectedObject.object)
+          // this is highly non performant, creates 1000s of meshes
         }
       }
       if (gameState.playerObject?.playerShip?.group?.position) {
@@ -958,7 +957,6 @@ if (WebGL.isWebGL2Available()) {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     timeSinceLastFrame += deltaTime * 1000;
-
     // 3. Only update logic and render if the target interval is reached
     if (timeSinceLastFrame >= frameInterval) {
       // --- PUT YOUR SIMULATION LOGIC HERE ---

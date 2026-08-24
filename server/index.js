@@ -21,28 +21,13 @@ const publicPath = join(__dirname, "..");
 const viteBuildPath = join(__dirname, "../dist");
 const viteFallbackPath = join(__dirname, "../dist/index.html");
 
-const players = [];
-// app.use(express.static(publicPath));
-
-// // Serve the built Vite frontend
-// app.use(express.static(viteBuildPath));
+const onlinePLayers = [];
 
 app.use(express.static(join(__dirname, "../dist")));
-
-// Fallback for SPA routes
-// app.get('*', (req, res) => {
-//   res.sendFile(viteFallbackPath)
-// })
-
-// 2️⃣ Serve index.html explicitly
-// app.get("/", (req, res) => {
-//   res.sendFile(join(publicPath, "index.html"));
-// });
 
 io.on("connection", (socket) => {
   console.log("a user has connected");
   socket.on("disconnect", (payload) => {
-    // console.log({ payload });
   });
   socket.on("new player", (player) => {
     socket.broadcast.emit("join players", player);
