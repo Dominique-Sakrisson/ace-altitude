@@ -29,16 +29,16 @@ import {
   getObjectGlobalPosition,
 } from "./objectHelper";
 
-// const wsUrl = import.meta.env?.VITE_WS_URL;
-// import { io } from "socket.io-client";
+const wsUrl = import.meta.env?.VITE_WS_URL;
+import { io } from "socket.io-client";
 let socket = {};
-// if (wsUrl) {
-//   // client/main.js
-//   socket = io("http://localhost:3000", {
-//     transports: ["websocket"],
-//     withCredentials: true,
-//   }); // your Node.js server
-// }
+if (wsUrl) {
+  // client/main.js
+  socket = io("http://localhost:3000", {
+    transports: ["websocket"],
+    withCredentials: true,
+  }); // your Node.js server
+}
 
 const WORLD_SCALE = 0.1;
 
