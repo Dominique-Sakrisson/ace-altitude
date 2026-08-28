@@ -1,0 +1,266 @@
+{
+    "asset": {
+        "version": "2.0",
+        "generator": "Open Asset Import Library (assimp v5.2.cf7d3637)"
+    },
+    "extensionsUsed": [
+        "KHR_materials_volume",
+        "FB_ngon_encoding"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 1314,
+            "type": "VEC3",
+            "max": [
+                1.0,
+                1.6004751920700074,
+                1.6845884323120118
+            ],
+            "min": [
+                -1.0068801641464234,
+                -1.6004751920700074,
+                -0.5
+            ]
+        },
+        {
+            "bufferView": 1,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 1314,
+            "type": "VEC3",
+            "max": [
+                0.968775749206543,
+                1.0,
+                0.9486894607543945
+            ],
+            "min": [
+                -0.968775749206543,
+                -1.0,
+                -0.8112350106239319
+            ]
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 1314,
+            "type": "VEC2",
+            "max": [
+                0.9974231123924255,
+                0.9974642395973206
+            ],
+            "min": [
+                0.0009291106835007668,
+                0.00217282772064209
+            ]
+        },
+        {
+            "bufferView": 3,
+            "byteOffset": 0,
+            "componentType": 5125,
+            "count": 1314,
+            "type": "SCALAR",
+            "max": [
+                1313
+            ],
+            "min": [
+                0
+            ]
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 47304,
+            "uri": "result.bin"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteOffset": 0,
+            "byteLength": 15768,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 15768,
+            "byteLength": 15768,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 31536,
+            "byteLength": 10512,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 42048,
+            "byteLength": 5256,
+            "target": 34963
+        }
+    ],
+    "images": [
+        {
+            "uri": "//..\\..\\..\\TextureDB\\Specific\\model_Console\\texturemap.tga"
+        }
+    ],
+    "materials": [
+        {
+            "name": "Material",
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {
+                    "index": 0
+                },
+                "baseColorFactor": [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929,
+                    1.0
+                ],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.7763932347297669
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "Cube",
+            "primitives": [
+                {
+                    "extensions": {
+                        "FB_ngon_encoding": {}
+                    },
+                    "mode": 4,
+                    "material": 0,
+                    "indices": 3,
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
+                    }
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "name": "<BlenderRoot>",
+            "children": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "name": "Point.002",
+            "matrix": [
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                -1.6963690519332886,
+                5.3140668869018559,
+                4.799339771270752,
+                1.0
+            ]
+        },
+        {
+            "name": "Point.001",
+            "matrix": [
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                -4.778389930725098,
+                -5.983652114868164,
+                5.390690803527832,
+                1.0
+            ]
+        },
+        {
+            "name": "Point",
+            "matrix": [
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                1.7708499431610108,
+                0.3473326861858368,
+                2.125595808029175,
+                1.0
+            ]
+        },
+        {
+            "name": "Cube",
+            "mesh": 0
+        },
+        {
+            "name": "Camera",
+            "matrix": [
+                -0.03442731127142906,
+                0.9994069933891296,
+                -1.1427865587165798e-7,
+                0.0,
+                -0.3954978585243225,
+                -0.013623901642858982,
+                0.9183657169342041,
+                0.0,
+                0.9178213477134705,
+                0.03161691501736641,
+                0.39573246240615847,
+                0.0,
+                5.667821407318115,
+                0.3298499882221222,
+                3.345649480819702,
+                1.0
+            ]
+        }
+    ],
+    "samplers": [
+        {}
+    ],
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ],
+    "textures": [
+        {
+            "source": 0,
+            "sampler": 0
+        }
+    ],
+    "scene": 0
+}
